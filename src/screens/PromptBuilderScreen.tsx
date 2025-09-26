@@ -22,27 +22,17 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const [domainCategory, setDomainCategory] = React.useState('');
   const [domainDetail, setDomainDetail] = React.useState('');
-  const [roleTitle, setRoleTitle] = React.useState('');
-  const [roleDescription, setRoleDescription] = React.useState('');
-  const [background, setBackground] = React.useState('');
+  const [industry, setIndustry] = React.useState('');
   const [tasks, setTasks] = React.useState('');
   const [skills, setSkills] = React.useState('');
-  const [outputRequirements, setOutputRequirements] = React.useState('');
-  const [reviewGuidelines, setReviewGuidelines] = React.useState('');
-  const [request, setRequest] = React.useState('');
 
   React.useEffect(() => {
     if (promptResult) {
       setDomainCategory(promptResult.input.domainCategory);
       setDomainDetail(promptResult.input.domainDetail);
-      setRoleTitle(promptResult.input.roleTitle);
-      setRoleDescription(promptResult.input.roleDescription);
-      setBackground(promptResult.input.background);
+      setIndustry(promptResult.input.industry);
       setTasks(promptResult.input.tasks);
       setSkills(promptResult.input.skills);
-      setOutputRequirements(promptResult.input.outputRequirements);
-      setReviewGuidelines(promptResult.input.reviewGuidelines);
-      setRequest(promptResult.input.request);
     }
   }, [promptResult]);
 
@@ -64,27 +54,12 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    if (!roleTitle.trim()) {
-      Alert.alert('ロールの肩書きを入力してください');
-      return;
-    }
-
-    if (!request.trim()) {
-      Alert.alert('依頼事項を入力してください');
-      return;
-    }
-
     const input: PromptBuilderInput = {
       domainCategory,
       domainDetail,
-      roleTitle,
-      roleDescription,
-      background,
+      industry,
       tasks,
       skills,
-      outputRequirements,
-      reviewGuidelines,
-      request,
     };
 
     const result = buildPrompt(input);
@@ -93,14 +68,9 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   }, [
     domainCategory,
     domainDetail,
-    roleTitle,
-    roleDescription,
-    background,
+    industry,
     tasks,
     skills,
-    outputRequirements,
-    reviewGuidelines,
-    request,
     setPromptResult,
     navigation,
   ]);
@@ -149,33 +119,12 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>ロールの肩書き</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="例：Pythonによる業務自動化をリードするスペシャリスト"
-          value={roleTitle}
-          onChangeText={setRoleTitle}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>ロールの説明</Text>
+        <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="ロールが果たす役割やスタンスを記載してください"
-          value={roleDescription}
-          onChangeText={setRoleDescription}
-          multiline
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>プロジェクト背景・前提</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="現状や前提条件を書いてください"
-          value={background}
-          onChangeText={setBackground}
+          placeholder="業界が決まっていれば入力してください"
+          value={industry}
+          onChangeText={setIndustry}
           multiline
         />
       </View>
@@ -198,39 +147,6 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
           placeholder="例：Pythonの専門知識\n例：リーダブルコードのベストプラクティス"
           value={skills}
           onChangeText={setSkills}
-          multiline
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>出力条件（1行につき1項目）</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="例：日本語で丁寧に説明する\n例：不足情報があればヒアリングする"
-          value={outputRequirements}
-          onChangeText={setOutputRequirements}
-          multiline
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>レビュー指針（1行につき1項目）</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="例：エラーハンドリングを確認する\n例：論理の抜け漏れをチェックする"
-          value={reviewGuidelines}
-          onChangeText={setReviewGuidelines}
-          multiline
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>依頼事項</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="AIに依頼したい内容や要望を記載してください"
-          value={request}
-          onChangeText={setRequest}
           multiline
         />
       </View>
