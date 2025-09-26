@@ -1,29 +1,13 @@
 import React from 'react';
-import { PromptResult } from '../utils/prompt';
-
-export interface AccountInfo {
-  nickname: string;
-  email: string;
-  apiKey: string;
-  note: string;
-}
+import { buildPrompt, PromptResult } from '../utils/prompt';
 
 export interface AppStateContextValue {
   promptResult: PromptResult | null;
   questionDraft: string;
-  account: AccountInfo;
   setPromptResult: (result: PromptResult | null) => void;
   updateQuestionDraft: (value: string) => void;
-  updateAccount: (info: Partial<AccountInfo>) => void;
   reset: () => void;
 }
-
-const defaultAccount: AccountInfo = {
-  nickname: '',
-  email: '',
-  apiKey: '',
-  note: '',
-};
 
 const AppStateContext = React.createContext<AppStateContextValue | undefined>(
   undefined,
@@ -36,7 +20,6 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
     null,
   );
   const [questionDraft, setQuestionDraft] = React.useState('');
-  const [account, setAccount] = React.useState<AccountInfo>(defaultAccount);
 
   const storePromptResult = React.useCallback(
     (result: PromptResult | null) => {
@@ -47,10 +30,12 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
 
   const updateQuestionDraft = React.useCallback((value: string) => {
     setQuestionDraft(value);
-  }, []);
-
-  const updateAccount = React.useCallback((info: Partial<AccountInfo>) => {
-    setAccount((prev) => ({ ...prev, ...info }));
+    setPromptResult((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      return buildPrompt(prev.input, value);
+    });
   }, []);
 
   const reset = React.useCallback(() => {
@@ -62,13 +47,11 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
     () => ({
       promptResult,
       questionDraft,
-      account,
       setPromptResult: storePromptResult,
       updateQuestionDraft,
-      updateAccount,
       reset,
     }),
-    [promptResult, questionDraft, account, storePromptResult, updateQuestionDraft, updateAccount, reset],
+    [promptResult, questionDraft, storePromptResult, updateQuestionDraft, reset],
   );
 
   return (
