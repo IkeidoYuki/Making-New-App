@@ -11,7 +11,12 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../context/AppStateContext';
-import { buildPrompt, PromptBuilderInput } from '../utils/prompt';
+import {
+  buildPrompt,
+  generateDefaultTasksText,
+  getDomainTemplate,
+  PromptBuilderInput,
+} from '../utils/prompt';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PromptBuilder'>;
 
@@ -39,6 +44,9 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const [domainCategory, setDomainCategory] = React.useState('');
   const [domainDetail, setDomainDetail] = React.useState('');
   const [industry, setIndustry] = React.useState('');
+  const [focusTopics, setFocusTopics] = React.useState('');
+  const [tasks, setTasks] = React.useState('');
+  const [didEditTasks, setDidEditTasks] = React.useState(false);
   const [additionalInfo, setAdditionalInfo] = React.useState('');
 
   React.useEffect(() => {
@@ -46,6 +54,10 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       setDomainCategory(promptResult.input.domainCategory);
       setDomainDetail(promptResult.input.domainDetail);
       setIndustry(promptResult.input.industry);
+      setFocusTopics(promptResult.input.focusTopics ?? '');
+      const savedTasks = promptResult.input.tasks ?? '';
+      setTasks(savedTasks);
+      setDidEditTasks(savedTasks.trim().length > 0);
       setAdditionalInfo(promptResult.input.additionalInfo);
     }
   }, [promptResult]);
@@ -55,7 +67,30 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     if (option !== 'その他') {
       setDomainDetail('');
     }
+    setFocusTopics('');
+    setDidEditTasks(false);
   }, []);
+
+  const handleTasksChange = React.useCallback((value: string) => {
+    setTasks(value);
+    setDidEditTasks(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!domainCategory) {
+      setTasks('');
+      setDidEditTasks(false);
+      return;
+    }
+    if (!didEditTasks) {
+      const autoTasks = generateDefaultTasksText(
+        domainCategory,
+        domainDetail,
+        industry,
+      );
+      setTasks(autoTasks);
+    }
+  }, [domainCategory, domainDetail, industry, didEditTasks]);
 
   const handleGenerate = React.useCallback(() => {
     if (!domainCategory) {
@@ -72,6 +107,8 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       domainCategory,
       domainDetail,
       industry,
+      focusTopics,
+      tasks,
       additionalInfo,
     };
 
@@ -87,16 +124,10 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     navigation,
   ]);
 
-  const domainDisplay =
-    domainCategory === 'その他' && domainDetail.trim()
-      ? domainDetail.trim()
-      : domainCategory || '（領域未選択）';
-
-  const industryDisplay = industry.trim()
-    ? industry.trim().endsWith('業界')
-      ? industry.trim()
-      : `${industry.trim()}業界`
-    : '想定業界';
+  const domainTemplate = getDomainTemplate(domainCategory);
+  const focusPlaceholder = domainCategory
+    ? domainTemplate.focusPlaceholder
+    : 'テーマを選択すると入力例が表示されます';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -141,6 +172,22 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </View>
 
+      {domainCategory ? (
+        <View style={styles.formGroup}>
+          <Text style={styles.sectionLabel}>特に知りたい内容（任意）</Text>
+          <TextInput
+            style={[styles.input, styles.multiline]}
+            placeholder={focusPlaceholder}
+            value={focusTopics}
+            onChangeText={setFocusTopics}
+            multiline
+          />
+          <Text style={styles.helperText}>
+            複数ある場合は改行またはカンマで区切って入力してください。
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.formGroup}>
         <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
         <TextInput
@@ -154,25 +201,16 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.formGroup}>
         <Text style={styles.sectionLabel}>主な実施タスク</Text>
-        <View style={styles.readonlyBox}>
-          <Text style={styles.readonlyText}>AIは以下を実施します：</Text>
-          <Text style={styles.readonlyText}>
-            ・{domainDisplay}全般に関する知見に基づき、業界特性を踏まえた技術回答の作成
-          </Text>
-          <Text style={styles.readonlyText}>
-            ・現場で生じるQ&A対応、トラブル調査、運用手順のアドバイス
-          </Text>
-          <Text style={styles.readonlyText}>
-            ・{industryDisplay}に求められるセキュリティ基準・コンプライアンス要件の助言
-          </Text>
-          <Text style={styles.readonlyText}>
-            ・最新のアップデートや推奨アーキテクチャの情報提供
-          </Text>
-          <Text style={styles.readonlyText}>
-            ・入力された質問内容に応じて、関連資料・サンプル構成
-          </Text>
-          <Text style={styles.readonlyText}>・注意事項も付与</Text>
-        </View>
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          placeholder="この領域でAIに実施してほしいタスクを入力してください"
+          value={tasks}
+          onChangeText={handleTasksChange}
+          multiline
+        />
+        <Text style={styles.helperText}>
+          選択したテーマに合わせて自動入力されています。必要に応じて追記・編集してください。
+        </Text>
       </View>
 
       <View style={styles.formGroup}>
@@ -242,6 +280,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e293b',
     marginBottom: 8,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 8,
+    lineHeight: 16,
   },
   input: {
     borderWidth: 1,
@@ -333,19 +377,6 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
     fontWeight: '600',
     fontSize: 14,
-  },
-  readonlyBox: {
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    padding: 12,
-    gap: 6,
-  },
-  readonlyText: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#334155',
   },
 });
 
