@@ -15,7 +15,23 @@ import { buildPrompt, PromptBuilderInput } from '../utils/prompt';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PromptBuilder'>;
 
-const DOMAIN_OPTIONS = ['料理', 'クラウド', '建築', 'マーケティング', '教育', '医療', 'その他'];
+const DOMAIN_OPTIONS = [
+  'IT',
+  '製造',
+  '金融',
+  '小売',
+  '医療',
+  '教育',
+  '建設',
+  '物流',
+  '公共',
+  'エネルギー',
+  '飲食',
+  '旅行',
+  'メディア',
+  'プロサービス',
+  'その他',
+];
 
 const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const { promptResult, setPromptResult } = useAppState();
@@ -23,16 +39,14 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const [domainCategory, setDomainCategory] = React.useState('');
   const [domainDetail, setDomainDetail] = React.useState('');
   const [industry, setIndustry] = React.useState('');
-  const [tasks, setTasks] = React.useState('');
-  const [skills, setSkills] = React.useState('');
+  const [additionalInfo, setAdditionalInfo] = React.useState('');
 
   React.useEffect(() => {
     if (promptResult) {
       setDomainCategory(promptResult.input.domainCategory);
       setDomainDetail(promptResult.input.domainDetail);
       setIndustry(promptResult.input.industry);
-      setTasks(promptResult.input.tasks);
-      setSkills(promptResult.input.skills);
+      setAdditionalInfo(promptResult.input.additionalInfo);
     }
   }, [promptResult]);
 
@@ -58,8 +72,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       domainCategory,
       domainDetail,
       industry,
-      tasks,
-      skills,
+      additionalInfo,
     };
 
     const result = buildPrompt(input);
@@ -69,11 +82,21 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     domainCategory,
     domainDetail,
     industry,
-    tasks,
-    skills,
+    additionalInfo,
     setPromptResult,
     navigation,
   ]);
+
+  const domainDisplay =
+    domainCategory === 'その他' && domainDetail.trim()
+      ? domainDetail.trim()
+      : domainCategory || '（領域未選択）';
+
+  const industryDisplay = industry.trim()
+    ? industry.trim().endsWith('業界')
+      ? industry.trim()
+      : `${industry.trim()}業界`
+    : '想定業界';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -130,23 +153,35 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>主な実施タスク（1行につき1項目）</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="例：現状把握と課題整理を行う\n例：改善施策を複数案提示する"
-          value={tasks}
-          onChangeText={setTasks}
-          multiline
-        />
+        <Text style={styles.sectionLabel}>主な実施タスク</Text>
+        <View style={styles.readonlyBox}>
+          <Text style={styles.readonlyText}>AIは以下を実施します：</Text>
+          <Text style={styles.readonlyText}>
+            ・{domainDisplay}全般に関する知見に基づき、業界特性を踏まえた技術回答の作成
+          </Text>
+          <Text style={styles.readonlyText}>
+            ・現場で生じるQ&A対応、トラブル調査、運用手順のアドバイス
+          </Text>
+          <Text style={styles.readonlyText}>
+            ・{industryDisplay}に求められるセキュリティ基準・コンプライアンス要件の助言
+          </Text>
+          <Text style={styles.readonlyText}>
+            ・最新のアップデートや推奨アーキテクチャの情報提供
+          </Text>
+          <Text style={styles.readonlyText}>
+            ・入力された質問内容に応じて、関連資料・サンプル構成
+          </Text>
+          <Text style={styles.readonlyText}>・注意事項も付与</Text>
+        </View>
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>必須スキルセット（1行につき1項目）</Text>
+        <Text style={styles.sectionLabel}>AIに知っておいてほしい情報（任意・URLも可）</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="例：Pythonの専門知識\n例：リーダブルコードのベストプラクティス"
-          value={skills}
-          onChangeText={setSkills}
+          placeholder="共有したい補足情報や参考URLがあれば入力してください"
+          value={additionalInfo}
+          onChangeText={setAdditionalInfo}
           multiline
         />
       </View>
@@ -224,15 +259,19 @@ const styles = StyleSheet.create({
   optionList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
   },
   optionChip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#cbd5f5',
     backgroundColor: '#ffffff',
+    flexBasis: '48%',
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   optionChipSelected: {
     backgroundColor: '#2563eb11',
@@ -242,6 +281,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1e293b',
     fontWeight: '500',
+    textAlign: 'center',
   },
   optionChipTextSelected: {
     color: '#1d4ed8',
@@ -293,6 +333,19 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
     fontWeight: '600',
     fontSize: 14,
+  },
+  readonlyBox: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 12,
+    gap: 6,
+  },
+  readonlyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#334155',
   },
 });
 
