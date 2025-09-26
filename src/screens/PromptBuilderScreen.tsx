@@ -15,53 +15,94 @@ import { buildPrompt, PromptBuilderInput } from '../utils/prompt';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PromptBuilder'>;
 
+const DOMAIN_OPTIONS = ['料理', 'クラウド', '建築', 'マーケティング', '教育', '医療', 'その他'];
+
 const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const { promptResult, setPromptResult } = useAppState();
 
-  const [topic, setTopic] = React.useState('');
+  const [domainCategory, setDomainCategory] = React.useState('');
+  const [domainDetail, setDomainDetail] = React.useState('');
+  const [roleTitle, setRoleTitle] = React.useState('');
+  const [roleDescription, setRoleDescription] = React.useState('');
   const [background, setBackground] = React.useState('');
-  const [desiredOutcome, setDesiredOutcome] = React.useState('');
-  const [answerStyle, setAnswerStyle] = React.useState('');
-  const [constraints, setConstraints] = React.useState('');
-  const [followUpPreference, setFollowUpPreference] = React.useState('');
+  const [tasks, setTasks] = React.useState('');
+  const [skills, setSkills] = React.useState('');
+  const [outputRequirements, setOutputRequirements] = React.useState('');
+  const [reviewGuidelines, setReviewGuidelines] = React.useState('');
+  const [request, setRequest] = React.useState('');
 
   React.useEffect(() => {
     if (promptResult) {
-      setTopic(promptResult.input.topic);
+      setDomainCategory(promptResult.input.domainCategory);
+      setDomainDetail(promptResult.input.domainDetail);
+      setRoleTitle(promptResult.input.roleTitle);
+      setRoleDescription(promptResult.input.roleDescription);
       setBackground(promptResult.input.background);
-      setDesiredOutcome(promptResult.input.desiredOutcome);
-      setAnswerStyle(promptResult.input.answerStyle);
-      setConstraints(promptResult.input.constraints);
-      setFollowUpPreference(promptResult.input.followUpPreference);
+      setTasks(promptResult.input.tasks);
+      setSkills(promptResult.input.skills);
+      setOutputRequirements(promptResult.input.outputRequirements);
+      setReviewGuidelines(promptResult.input.reviewGuidelines);
+      setRequest(promptResult.input.request);
     }
   }, [promptResult]);
 
+  const handleSelectDomain = React.useCallback((option: string) => {
+    setDomainCategory(option);
+    if (option !== 'その他') {
+      setDomainDetail('');
+    }
+  }, []);
+
   const handleGenerate = React.useCallback(() => {
-    if (!topic || !desiredOutcome) {
-      Alert.alert('テーマと期待する成果を入力してください');
+    if (!domainCategory) {
+      Alert.alert('テーマ・領域を選択してください');
+      return;
+    }
+
+    if (domainCategory === 'その他' && !domainDetail.trim()) {
+      Alert.alert('その他を選択した場合、具体的な領域を記入してください');
+      return;
+    }
+
+    if (!roleTitle.trim()) {
+      Alert.alert('ロールの肩書きを入力してください');
+      return;
+    }
+
+    if (!request.trim()) {
+      Alert.alert('依頼事項を入力してください');
       return;
     }
 
     const input: PromptBuilderInput = {
-      topic,
+      domainCategory,
+      domainDetail,
+      roleTitle,
+      roleDescription,
       background,
-      desiredOutcome,
-      answerStyle,
-      constraints,
-      followUpPreference,
+      tasks,
+      skills,
+      outputRequirements,
+      reviewGuidelines,
+      request,
     };
 
     const result = buildPrompt(input);
     setPromptResult(result);
-    Alert.alert('ロールプロンプトを作成しました', 'メイン画面で内容を確認できます。');
+    navigation.navigate('Main');
   }, [
-    topic,
-    desiredOutcome,
+    domainCategory,
+    domainDetail,
+    roleTitle,
+    roleDescription,
     background,
-    answerStyle,
-    constraints,
-    followUpPreference,
+    tasks,
+    skills,
+    outputRequirements,
+    reviewGuidelines,
+    request,
     setPromptResult,
+    navigation,
   ]);
 
   return (
@@ -73,16 +114,63 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.formGroup}>
         <Text style={styles.label}>テーマ・領域</Text>
+        <View style={styles.optionList}>
+          {DOMAIN_OPTIONS.map((option) => {
+            const isSelected = domainCategory === option;
+            return (
+              <Pressable
+                key={option}
+                style={[
+                  styles.optionChip,
+                  isSelected && styles.optionChipSelected,
+                ]}
+                onPress={() => handleSelectDomain(option)}
+              >
+                <Text
+                  style={[
+                    styles.optionChipText,
+                    isSelected && styles.optionChipTextSelected,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {domainCategory === 'その他' && (
+          <TextInput
+            style={[styles.input, styles.marginTopSmall]}
+            placeholder="想定している領域を詳しく記入してください"
+            value={domainDetail}
+            onChangeText={setDomainDetail}
+          />
+        )}
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>ロールの肩書き</Text>
         <TextInput
           style={styles.input}
-          placeholder="例：プロダクトマーケティング、バックエンド開発など"
-          value={topic}
-          onChangeText={setTopic}
+          placeholder="例：Pythonによる業務自動化をリードするスペシャリスト"
+          value={roleTitle}
+          onChangeText={setRoleTitle}
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>背景情報</Text>
+        <Text style={styles.label}>ロールの説明</Text>
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          placeholder="ロールが果たす役割やスタンスを記載してください"
+          value={roleDescription}
+          onChangeText={setRoleDescription}
+          multiline
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.sectionLabel}>プロジェクト背景・前提</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
           placeholder="現状や前提条件を書いてください"
@@ -93,45 +181,56 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>期待する成果・ゴール</Text>
+        <Text style={styles.sectionLabel}>主な実施タスク（1行につき1項目）</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="得たいアウトプットや判断基準を記載"
-          value={desiredOutcome}
-          onChangeText={setDesiredOutcome}
+          placeholder="例：現状把握と課題整理を行う\n例：改善施策を複数案提示する"
+          value={tasks}
+          onChangeText={setTasks}
           multiline
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>回答のトーン・形式</Text>
+        <Text style={styles.sectionLabel}>必須スキルセット（1行につき1項目）</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="例：箇条書きで、専門用語は説明しながら、など"
-          value={answerStyle}
-          onChangeText={setAnswerStyle}
+          placeholder="例：Pythonの専門知識\n例：リーダブルコードのベストプラクティス"
+          value={skills}
+          onChangeText={setSkills}
           multiline
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>制約条件</Text>
+        <Text style={styles.sectionLabel}>出力条件（1行につき1項目）</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="避けたい内容や守るべきルールがあれば記載"
-          value={constraints}
-          onChangeText={setConstraints}
+          placeholder="例：日本語で丁寧に説明する\n例：不足情報があればヒアリングする"
+          value={outputRequirements}
+          onChangeText={setOutputRequirements}
           multiline
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>深掘りしてほしい観点</Text>
+        <Text style={styles.sectionLabel}>レビュー指針（1行につき1項目）</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="質問後に追加で確認したいポイント"
-          value={followUpPreference}
-          onChangeText={setFollowUpPreference}
+          placeholder="例：エラーハンドリングを確認する\n例：論理の抜け漏れをチェックする"
+          value={reviewGuidelines}
+          onChangeText={setReviewGuidelines}
+          multiline
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.sectionLabel}>依頼事項</Text>
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          placeholder="AIに依頼したい内容や要望を記載してください"
+          value={request}
+          onChangeText={setRequest}
           multiline
         />
       </View>
@@ -187,6 +286,12 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 8,
   },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#cbd5f5',
@@ -199,6 +304,31 @@ const styles = StyleSheet.create({
   multiline: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  optionList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    backgroundColor: '#ffffff',
+  },
+  optionChipSelected: {
+    backgroundColor: '#2563eb11',
+    borderColor: '#2563eb',
+  },
+  optionChipText: {
+    fontSize: 13,
+    color: '#1e293b',
+    fontWeight: '500',
+  },
+  optionChipTextSelected: {
+    color: '#1d4ed8',
   },
   primaryButton: {
     backgroundColor: '#2563eb',
