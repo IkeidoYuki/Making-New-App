@@ -26,6 +26,10 @@
    ```bash
    npx expo start
    ```
+   - Metro/Expoの接続が切れたり、マージ後に変更が反映されない場合はキャッシュをクリアした上で起動してください。
+   ```bash
+   npm run start:fresh
+   ```
 4. 表示されるQRコードをExpo Goアプリ（iOS/Android）で読み取るか、シミュレータを起動して動作を確認してください。
 
 ## Pythonファイルの実行について
