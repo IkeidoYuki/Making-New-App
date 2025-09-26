@@ -2,8 +2,7 @@ export interface PromptBuilderInput {
   domainCategory: string;
   domainDetail: string;
   industry: string;
-  tasks: string;
-  skills: string;
+  additionalInfo: string;
 }
 
 export interface PromptResult {
@@ -16,12 +15,6 @@ export interface PromptResult {
 const defaults = {
   domain: '未指定の領域',
   industry: '業界未指定',
-  tasks: ['課題の背景を把握し、仮説立案を行う。', '具体的な打ち手や改善策を提示する。'],
-  skills: [
-    'ドメインに関する専門的な知識',
-    '構造化されたドキュメンテーション能力',
-    '課題に応じたコミュニケーション力',
-  ],
 };
 
 function sanitiseMultiline(input: string): string[] {
@@ -31,31 +24,36 @@ function sanitiseMultiline(input: string): string[] {
     .filter((item) => item.length > 0);
 }
 
-function formatNumberedList(items: string[]): string {
-  if (items.length === 0) {
-    return defaults.tasks.map((task, index) => `${index + 1}. ${task}`).join('\n');
-  }
-  return items.map((task, index) => `${index + 1}. ${task}`).join('\n');
-}
-
-function formatBulletedList(items: string[], fallback: string[]): string {
-  const source = items.length > 0 ? items : fallback;
-  return source.map((item) => `- ${item}`).join('\n');
-}
-
 export function buildPrompt(input: PromptBuilderInput): PromptResult {
   const domain =
     input.domainCategory === 'その他' && input.domainDetail.trim()
       ? input.domainDetail.trim()
       : input.domainCategory.trim() || defaults.domain;
 
-  const industry = input.industry.trim() || '';
+  const rawIndustry = input.industry.trim();
+  const hasIndustry = rawIndustry.length > 0;
+  const industryDisplay = hasIndustry
+    ? rawIndustry.endsWith('業界')
+      ? rawIndustry
+      : `${rawIndustry}業界`
+    : '想定業界';
+  const industryLabel = hasIndustry ? industryDisplay : defaults.industry;
 
-  const tasks = formatNumberedList(sanitiseMultiline(input.tasks));
-  const skills = formatBulletedList(
-    sanitiseMultiline(input.skills),
-    defaults.skills,
-  );
+  const additionalInfoItems = sanitiseMultiline(input.additionalInfo);
+  const additionalInfoSection =
+    additionalInfoItems.length > 0
+      ? additionalInfoItems.map((item) => `- ${item}`).join('\n')
+      : '- 現時点で共有された追加情報はありません。';
+
+  const tasks = [
+    'AIは以下を実施します：',
+    `・${domain}全般に関する知見に基づき、業界特性を踏まえた技術回答の作成`,
+    '・現場で生じるQ&A対応、トラブル調査、運用手順のアドバイス',
+    `・${industryDisplay}に求められるセキュリティ基準・コンプライアンス要件の助言`,
+    '・最新のアップデートや推奨アーキテクチャの情報提供',
+    '・入力された質問内容に応じて、関連資料・サンプル構成',
+    '・注意事項も付与',
+  ].join('\n');
 
   const outputConditions = [
     '日本語で入力してください。',
@@ -79,10 +77,8 @@ export function buildPrompt(input: PromptBuilderInput): PromptResult {
 
   const request = 'これから依頼を致しますので、回答をお願いたします';
 
-  const industryLabel = industry || defaults.industry;
-
-  const roleDefinition = industry
-    ? `あなたは「${domain}の質問に対する専門的回答者」として、${industry}業界に特化したスペシャリストです。\n${domain}の幅広いサービス・機能・知見を持って、専門的な視点でわかりやすく正確な回答を生成します。\nユーザーの質問内容を的確に把握し、${industry}業界での活用・留意点やベストプラクティス、トラブルシューティングや最適運用案なども含めた提案・解説を行うことで、プロジェクト全体の品質と効率向上に貢献します。`
+  const roleDefinition = hasIndustry
+    ? `あなたは「${domain}の質問に対する専門的回答者」として、${industryDisplay}に特化したスペシャリストです。\n${domain}の幅広いサービス・機能・知見を持って、専門的な視点でわかりやすく正確な回答を生成します。\nユーザーの質問内容を的確に把握し、${industryDisplay}での活用・留意点やベストプラクティス、トラブルシューティングや最適運用案なども含めた提案・解説を行うことで、プロジェクト全体の品質と効率向上に貢献します。`
     : `あなたは「${domain}の質問に対する専門的回答者」として、業界を問わず幅広く対応するスペシャリストです。\n${domain}の幅広いサービス・機能・知見を持って、専門的な視点でわかりやすく正確な回答を生成します。\nユーザーの質問内容を的確に把握し、活用時の留意点やベストプラクティス、トラブルシューティングや最適運用案なども含めた提案・解説を行うことで、プロジェクト全体の品質と効率向上に貢献します。`;
 
   const rolePrompt = `# ロール定義\n` +
@@ -90,7 +86,7 @@ export function buildPrompt(input: PromptBuilderInput): PromptResult {
     '\n---' +
     `\n\n## 主な実施タスク・業務内容\n${tasks}` +
     '\n---' +
-    `\n\n## 必須のスキルセット・知識\n${skills}` +
+    `\n\n## AIに知っておいてほしい情報\n${additionalInfoSection}` +
     '\n---' +
     `\n\n# 出力条件\n${outputConditions}` +
     '\n---' +
@@ -103,8 +99,8 @@ export function buildPrompt(input: PromptBuilderInput): PromptResult {
   const followUpQuestions = [
     '依頼事項のゴールや評価基準を具体的に教えてください。',
     `「${domain}」に特有の制約や利用環境があれば教えてください。`,
-    industry
-      ? `${industry}業界で注意すべき制度・慣習・ステークホルダーがあれば共有してください。`
+    hasIndustry
+      ? `${industryDisplay}で注意すべき制度・慣習・ステークホルダーがあれば共有してください。`
       : '想定している業界や利用シーンに特有の制約があれば共有してください。',
   ];
 
