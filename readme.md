@@ -28,6 +28,37 @@
    ```
 4. 表示されるQRコードをExpo Goアプリ（iOS/Android）で読み取るか、シミュレータを起動して動作を確認してください。
 
+## Pythonファイルの実行について
+- 本プロジェクトはExpoとTypeScript（React Native）で構成されており、動作確認にPythonスクリプトは使用していません。
+- そのため、Pythonで実行すべきファイルは存在しません。開発・検証は上記セットアップ手順に従い、`npx expo start` を利用してください。
+
+## iOSアプリの登録・ビルド・検証
+1. Expoアカウントを作成し、[EAS CLI](https://docs.expo.dev/eas/) をインストールします。
+   ```bash
+   npm install -g eas-cli
+   ```
+2. プロジェクトルートで `eas login` を実行し、Expoアカウントにログインします。
+3. iOS用のビルドプロファイル（例：`eas.json`）を追加し、`eas build:configure` で自動生成される設定をコミットします。
+4. 下記コマンドでiOSビルドを作成します。
+   ```bash
+   eas build --platform ios
+   ```
+   - 初回ビルド時はApple Developer Programのアカウント情報や証明書を登録する必要があります。
+5. ビルド完了後、`eas submit --platform ios` を実行し、App Store Connectへアーカイブをアップロードします。
+   - App Store Connect上でアプリのメタデータ（アプリアイコン、スクリーンショット、説明文など）を登録し、審査リクエストを送信します。
+6. 開発中はXcodeシミュレータ、または `expo start --ios` で起動できるExpo Go経由で動作確認が可能です。
+
+## Androidアプリの登録・ビルド・検証
+1. `eas login` 済みであることを確認し、必要に応じてGoogle Play Consoleのデベロッパーアカウントを準備します。
+2. 下記コマンドでAndroidビルドを作成します。
+   ```bash
+   eas build --platform android
+   ```
+   - 初回ビルドではキーストアをEAS側で自動生成するか、既存のキーストアをアップロードします。
+3. ビルド完了後、`eas submit --platform android` を実行し、Google Play Consoleへアップロードします。
+   - コンソール上でアプリ情報、コンテンツレーティング、リリースノートなどを登録し、審査を申請します。
+4. 開発中の動作確認はAndroidエミュレータ、実機、または `expo start --android` で起動するExpo Goアプリを利用してください。
+
 ## ディレクトリ構成
 ```
 .
