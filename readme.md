@@ -32,6 +32,21 @@
    ```
 4. 表示されるQRコードをExpo Goアプリ（iOS/Android）で読み取るか、シミュレータを起動して動作を確認してください。
 
+### Expoの警告について
+
+`npx expo start --clear --localhost` 実行時に以下のようなExpo SDKとのバージョン不一致に関する警告が表示された場合は、次の手順で解消できます。
+
+```bash
+# Expo SDKに合わせて“期待値”を自動で入れてくれる
+npx expo install react-native react-native-safe-area-context react-native-screens
+
+# 仕上げ
+npx expo doctor
+npx expo start --clear --localhost
+```
+
+Expo SDKに合わせた依存関係へ更新した上でキャッシュをクリアし再起動することで、警告が解消され、最新の依存関係を用いた開発を継続できます。
+
 ## Pythonファイルの実行について
 - 本プロジェクトはExpoとTypeScript（React Native）で構成されており、動作確認にPythonスクリプトは使用していません。
 - そのため、Pythonで実行すべきファイルは存在しません。開発・検証は上記セットアップ手順に従い、`npx expo start` を利用してください。
