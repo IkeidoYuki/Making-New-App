@@ -379,6 +379,7 @@ export function generateDefaultTasksText(
 }
 
 export function buildPrompt(input: PromptBuilderInput): PromptResult {
+  const trimmedFocus = input.focusTopics.trim();
   const domain = resolveDomainLabel(input.domainCategory, input.domainDetail);
 
   const { hasIndustry, display: industryDisplay, label: industryLabel } =
@@ -387,7 +388,11 @@ export function buildPrompt(input: PromptBuilderInput): PromptResult {
   const template = getDomainTemplate(input.domainCategory);
   const focusItems = sanitiseFocus(input.focusTopics);
   const focusLabel =
-    focusItems.length > 0 ? focusItems.join('、') : '特定の重点領域は未指定';
+    focusItems.length > 0
+      ? focusItems.join('、')
+      : trimmedFocus.length > 0
+        ? trimmedFocus
+        : '特定の重点領域は未指定';
 
   const context: TemplateContext = {
     domain,
@@ -411,7 +416,9 @@ export function buildPrompt(input: PromptBuilderInput): PromptResult {
   const focusSection =
     focusItems.length > 0
       ? focusItems.map((item) => `- ${item}`).join('\n')
-      : '- 現時点で特に深掘りしたい項目は指定されていません。';
+      : trimmedFocus.length > 0
+        ? `- ${trimmedFocus}`
+        : '- 現時点で特に深掘りしたい項目は指定されていません。';
 
   const outputConditions = [
     '日本語で入力してください。',
@@ -466,8 +473,14 @@ export function buildPrompt(input: PromptBuilderInput): PromptResult {
     focusFollowUp,
   ];
 
+  const normalizedInput: PromptBuilderInput = {
+    ...input,
+    focusTopics:
+      focusItems.length > 0 ? focusItems.join('\n') : trimmedFocus,
+  };
+
   return {
-    input,
+    input: normalizedInput,
     rolePrompt,
     summary,
     followUpQuestions,

@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../context/AppStateContext';
@@ -40,15 +41,31 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       );
       return;
     }
+
+    const question = questionDraft.trim();
+    const clipboardPayload =
+      question.length > 0
+        ? `${promptResult.rolePrompt}\n\n---\n\n# 質問文\n${question}`
+        : promptResult.rolePrompt;
+
+    try {
+      await Clipboard.setStringAsync(clipboardPayload);
+    } catch (error) {
+      Alert.alert(
+        'クリップボードにコピーできませんでした',
+        'お手数ですが手動でコピーして貼り付けてください。',
+      );
+    }
+
     await Linking.openURL(url);
-  }, [promptResult]);
+  }, [promptResult, questionDraft]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>AIロールプロンプト生成アシスタント</Text>
       <Text style={[styles.description, styles.sectionSpacing]}>
-        ききたい内容を整理し、AIに渡すロールプロンプトを自動生成します。
-        ChatGPTに投げる前に質問の背景・ゴールを明確にしましょう。
+        聞きたい内容に合わせてロールプロンプトを自動で組み立てるよ！
+        まずはヒアリングシートに入力して、すぐ使える指示文を用意しよう。
       </Text>
 
       <View style={[styles.buttonGroup, styles.sectionSpacing]}>
@@ -76,12 +93,15 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.cardBody}>
             <Text style={styles.cardLabel}>ロール指示</Text>
             <Text style={styles.promptText}>{promptResult.rolePrompt}</Text>
-            <Text style={[styles.cardLabel, styles.marginTop]}>確認したい観点</Text>
-            {promptResult.followUpQuestions.map((question, index) => (
-              <Text key={index} style={styles.followUpText}>
-                ・{question}
-              </Text>
-            ))}
+            {promptResult.followUpQuestions.length > 0 && (
+              <View style={styles.followUpContainer}>
+                {promptResult.followUpQuestions.map((question, index) => (
+                  <Text key={index} style={styles.followUpText}>
+                    ・{question}
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
         </View>
       ) : (
@@ -102,7 +122,7 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
           onChangeText={updateQuestionDraft}
         />
         <Text style={styles.helperText}>
-          上記のロールプロンプトと質問文をコピーし、ChatGPTに貼り付けて利用します。
+          ボタンを押すとロールプロンプトと質問文が自動でコピーされるので、そのままChatGPTに貼り付けて使えます。
         </Text>
         <Pressable
           style={[styles.primaryButton, styles.sectionSpacingSmall]}
@@ -199,10 +219,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     padding: 12,
     borderRadius: 8,
-    marginTop: 6,
+    marginTop: 8,
   },
-  marginTop: {
-    marginTop: 14,
+  followUpContainer: {
+    marginTop: 16,
   },
   followUpText: {
     fontSize: 13,
