@@ -21,28 +21,16 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, 'PromptBuilder'>;
 
 const DOMAIN_OPTIONS = [
-  'IT',
-  '製造',
-  '金融',
-  '小売',
-  '医療',
-  '教育',
-  '建設',
-  '物流',
-  '公共',
-  'エネルギー',
-  '飲食',
-  '旅行',
-  'メディア',
-  'プロサービス',
-  'その他',
+  'IT技術を知りたい',
+  '翻訳や文章校閲がしたい',
+  '花や虫の名前が知りたい',
+  '美味しいレシピを知りたい',
 ];
 
 const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
-  const { promptResult, setPromptResult } = useAppState();
+  const { promptResult, setPromptResult, questionDraft } = useAppState();
 
   const [domainCategory, setDomainCategory] = React.useState('');
-  const [domainDetail, setDomainDetail] = React.useState('');
   const [industry, setIndustry] = React.useState('');
   const [focusTopics, setFocusTopics] = React.useState('');
   const [tasks, setTasks] = React.useState('');
@@ -52,7 +40,6 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   React.useEffect(() => {
     if (promptResult) {
       setDomainCategory(promptResult.input.domainCategory);
-      setDomainDetail(promptResult.input.domainDetail);
       setIndustry(promptResult.input.industry);
       setFocusTopics(promptResult.input.focusTopics ?? '');
       const savedTasks = promptResult.input.tasks ?? '';
@@ -64,9 +51,6 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSelectDomain = React.useCallback((option: string) => {
     setDomainCategory(option);
-    if (option !== 'その他') {
-      setDomainDetail('');
-    }
     setFocusTopics('');
     setDidEditTasks(false);
   }, []);
@@ -85,12 +69,12 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     if (!didEditTasks) {
       const autoTasks = generateDefaultTasksText(
         domainCategory,
-        domainDetail,
+        '',
         industry,
       );
       setTasks(autoTasks);
     }
-  }, [domainCategory, domainDetail, industry, didEditTasks]);
+  }, [domainCategory, industry, didEditTasks]);
 
   const handleGenerate = React.useCallback(() => {
     if (!domainCategory) {
@@ -98,26 +82,20 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    if (domainCategory === 'その他' && !domainDetail.trim()) {
-      Alert.alert('その他を選択した場合、具体的な領域を記入してください');
-      return;
-    }
-
     const input: PromptBuilderInput = {
       domainCategory,
-      domainDetail,
+      domainDetail: '',
       industry,
       focusTopics,
       tasks,
       additionalInfo,
     };
 
-    const result = buildPrompt(input);
+    const result = buildPrompt(input, questionDraft);
     setPromptResult(result);
     navigation.navigate('Main');
   }, [
     domainCategory,
-    domainDetail,
     industry,
     additionalInfo,
     setPromptResult,
@@ -130,7 +108,10 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     : 'テーマを選択すると入力例が表示されます';
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>質問内容のヒアリング</Text>
       <Text style={[styles.description, styles.marginTopSmall]}>
         以下の項目を入力すると、AIに与えるロール指示と質問テンプレートを生成します。
@@ -162,14 +143,6 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
             );
           })}
         </View>
-        {domainCategory === 'その他' && (
-          <TextInput
-            style={[styles.input, styles.marginTopSmall]}
-            placeholder="想定している領域を詳しく記入してください"
-            value={domainDetail}
-            onChangeText={setDomainDetail}
-          />
-        )}
       </View>
 
       {domainCategory ? (

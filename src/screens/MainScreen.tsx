@@ -61,7 +61,10 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
   }, [promptResult, questionDraft]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>AIロールプロンプト生成アシスタント</Text>
       <Text style={[styles.description, styles.sectionSpacing]}>
         聞きたい内容に合わせてロールプロンプトを自動で組み立てるよ！
@@ -71,12 +74,6 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.buttonGroup, styles.sectionSpacing]}>
         <Pressable style={styles.primaryButton} onPress={openPromptBuilder}>
           <Text style={styles.primaryButtonText}>ヒアリングシートを記入する</Text>
-        </Pressable>
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate('Account')}
-        >
-          <Text style={styles.secondaryButtonText}>ChatGPTアカウント情報</Text>
         </Pressable>
         <Pressable
           style={styles.secondaryButton}
@@ -122,7 +119,7 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
           onChangeText={updateQuestionDraft}
         />
         <Text style={styles.helperText}>
-          ボタンを押すとロールプロンプトと質問文が自動でコピーされるので、そのままChatGPTに貼り付けて使えます。
+          ボタンを押すとロールプロンプトと質問文が自動でコピーされます。質問欄に入力した内容は、ロールプロンプト内の依頼事項にも反映されます。
         </Text>
         <Pressable
           style={[styles.primaryButton, styles.sectionSpacingSmall]}

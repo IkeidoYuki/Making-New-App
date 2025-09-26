@@ -3,7 +3,10 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const HelpScreen: React.FC = () => {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>ヘルプ & チュートリアル</Text>
       <Text style={[styles.description, styles.marginTopSmall]}>
         アプリの使い方と、良い質問を作るためのコツをまとめています。
@@ -44,10 +47,10 @@ const HelpScreen: React.FC = () => {
           A. いいえ。ユーザー自身でコピー＆ペーストして利用する設計です。
         </Text>
         <Text style={[styles.paragraph, styles.marginTopSmall]}>
-          Q. 入力したアカウント情報は安全ですか？
+          Q. 「ChatGPTに送信する質問内容」に入力した文章はどこに使われますか？
         </Text>
         <Text style={styles.answer}>
-          A. 端末内の状態として保持され、外部には送信しません。共有端末では保存を控えてください。
+          A. 入力するとロールプロンプト内の依頼事項に反映されます。またコピー時には質問文として別枠でも追加されるため、そのまま貼り付けて活用できます。
         </Text>
       </View>
 
