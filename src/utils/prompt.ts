@@ -140,12 +140,11 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
   'IT技術を知りたい': {
     focusPlaceholder:
       '例: AWSアーキテクチャ設計、Kubernetes運用のベストプラクティス、Terraformによる自動化 など',
-    roleDefinition: ({ domain, focusLabel }) => {
+    roleDefinition: ({ domain }) => {
       return [
         `あなたは、「${domain}について知りたい」という利用者の要望に対し、わかりやすく解説するテクニカルメンターです。`,
         '利用者のスキルレベルに合わせて、基礎から応用までの道筋を丁寧に示し、前提知識が少なくても理解できるように説明してください。',
         '設定手順や注意点、参考となる追加リソースも提案してください。',
-        `特に知りたい内容: ${focusLabel}`,
       ].join('\n');
     },
     defaultTasks: () => [
@@ -362,13 +361,18 @@ export function buildPrompt(
     resolveIndustryDisplay(input.industry);
 
   const template = getDomainTemplate(input.domainCategory);
-  const focusItems = sanitiseFocus(input.focusTopics);
-  const focusLabel =
-    focusItems.length > 0
+  const shouldIncludeFocusSection =
+    input.domainCategory !== '翻訳や文章校閲がしたい';
+  const focusItems = shouldIncludeFocusSection
+    ? sanitiseFocus(input.focusTopics)
+    : [];
+  const focusLabel = shouldIncludeFocusSection
+    ? focusItems.length > 0
       ? focusItems.join('、')
       : trimmedFocus.length > 0
         ? trimmedFocus
-        : '特定の重点領域は未指定';
+        : '特定の重点領域は未指定'
+    : '特定の重点領域は未指定';
 
   const context: TemplateContext = {
     domain,
@@ -389,12 +393,13 @@ export function buildPrompt(
     : template.defaultTasks(context)
   ).join('\n');
 
-  const focusSection =
-    focusItems.length > 0
+  const focusSection = shouldIncludeFocusSection
+    ? focusItems.length > 0
       ? focusItems.map((item) => `- ${item}`).join('\n')
       : trimmedFocus.length > 0
         ? `- ${trimmedFocus}`
-        : '- 現時点で特に深掘りしたい項目は指定されていません。';
+        : '- 現時点で特に深掘りしたい項目は指定されていません。'
+    : '';
 
   const outputConditions = getOutputConditions(input.domainCategory)
     .map((item) => `- ${item}`)
@@ -420,12 +425,15 @@ export function buildPrompt(
       : ['- これから質問をお送りしますので、回答をお願いいたします。'];
   const request = requestLines.join('\n');
 
+  const focusBlock = shouldIncludeFocusSection
+    ? `\n---\n\n## 特に知りたい内容\n${focusSection}`
+    : '';
+
   const rolePrompt = `# ロール定義\n` +
     `${template.roleDefinition(context)}` +
     '\n---' +
     `\n\n## 主な実施タスク・業務内容\n${tasks}` +
-    '\n---' +
-    `\n\n## 特に知りたい内容\n${focusSection}` +
+    `${focusBlock}` +
     '\n---' +
     `\n\n## AIに知っておいてほしい情報\n${additionalInfoSection}` +
     '\n---' +
@@ -437,10 +445,11 @@ export function buildPrompt(
 
   const summary = `${domain} / 想定シーン: ${industryLabel}`;
 
-  const focusFollowUp =
-    focusItems.length > 0
+  const focusFollowUp = shouldIncludeFocusSection
+    ? focusItems.length > 0
       ? '挙げていただいた関心領域の優先順位や背景があれば教えてください。'
-      : '深掘りしたいトピックがあれば、具体的なキーワードを教えてください。';
+      : '深掘りしたいトピックがあれば、具体的なキーワードを教えてください。'
+    : '文章の用途や想定している読み手、希望するトーンがあれば教えてください。';
 
   const followUpQuestions = [
     '依頼事項のゴールや評価基準を具体的に教えてください。',
@@ -453,8 +462,11 @@ export function buildPrompt(
 
   const normalizedInput: PromptBuilderInput = {
     ...input,
-    focusTopics:
-      focusItems.length > 0 ? focusItems.join('\n') : trimmedFocus,
+    focusTopics: shouldIncludeFocusSection
+      ? focusItems.length > 0
+        ? focusItems.join('\n')
+        : trimmedFocus
+      : '',
   };
 
   return {

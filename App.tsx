@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainScreen from './src/screens/MainScreen';
 import PromptBuilderScreen from './src/screens/PromptBuilderScreen';
 import HelpScreen from './src/screens/HelpScreen';
+import FavoritesScreen from './src/screens/FavoritesScreen';
 import { AppStateProvider } from './src/context/AppStateContext';
 import { RootStackParamList } from './src/navigation/types';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -40,6 +41,11 @@ export default function App() {
               name="Help"
               component={HelpScreen}
               options={{ title: 'ヘルプ' }}
+            />
+            <Stack.Screen
+              name="Favorites"
+              component={FavoritesScreen}
+              options={{ title: 'お気に入り' }}
             />
           </Stack.Navigator>
         </NavigationContainer>
