@@ -6,7 +6,6 @@ export interface AppStateContextValue {
   questionDraft: string;
   setPromptResult: (result: PromptResult | null) => void;
   updateQuestionDraft: (value: string) => void;
-  reset: () => void;
   history: PromptHistoryEntry[];
   favorites: FavoriteEntry[];
   addFavorite: (name: string, result: PromptResult) => void;
@@ -109,18 +108,12 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
     setFavorites((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  const reset = React.useCallback(() => {
-    setPromptResultState(null);
-    setQuestionDraft('');
-  }, []);
-
   const value = React.useMemo<AppStateContextValue>(
     () => ({
       promptResult,
       questionDraft,
       setPromptResult: storePromptResult,
       updateQuestionDraft,
-      reset,
       history,
       favorites,
       addFavorite,
@@ -132,7 +125,6 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       questionDraft,
       storePromptResult,
       updateQuestionDraft,
-      reset,
       history,
       favorites,
       addFavorite,
