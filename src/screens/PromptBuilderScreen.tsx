@@ -29,47 +29,17 @@ const DOMAIN_OPTIONS = [
   'その他（自由記述）',
 ];
 
-const IT_STACK_GROUPS = [
-  {
-    title: 'クラウド',
-    options: ['AWS', 'Azure', 'GCP', 'OCI', 'Cloudflare'],
-  },
-  {
-    title: 'コンテナ',
-    options: ['Docker', 'Kubernetes', 'Helm', 'ArgoCD'],
-  },
-  {
-    title: 'IaC/自動化',
-    options: ['Terraform', 'Ansible', 'Pulumi', 'GitHub Actions', 'GitLab CI'],
-  },
-  {
-    title: '監視/APM',
-    options: ['Prometheus', 'Grafana', 'OpenTelemetry', 'Datadog', 'New Relic'],
-  },
-  {
-    title: 'DB',
-    options: ['MySQL', 'PostgreSQL', 'SQL Server', 'Redis', 'MongoDB', 'Kafka'],
-  },
-  {
-    title: 'セキュリティ',
-    options: ['Okta', 'Entra ID', 'CrowdStrike', 'Zscaler', 'WAF'],
-  },
-  {
-    title: '開発',
-    options: ['Node.js', 'Python', 'Java', 'Go', 'React', 'Next.js', 'Swift', 'Kotlin'],
-  },
-  {
-    title: 'SaaS',
-    options: ['Microsoft 365', 'Google Workspace', 'Slack', 'Notion'],
-  },
-  {
-    title: 'モバイル/端末',
-    options: ['iOS', 'Android', 'iPadOS', 'Windows', 'macOS'],
-  },
-  {
-    title: 'ネットワーク',
-    options: ['BGP', 'DNS', 'IPSec', 'WireGuard'],
-  },
+const IT_CATEGORY_OPTIONS = [
+  'クラウド',
+  'コンテナ',
+  'IaC/自動化',
+  '監視/APM',
+  'DB',
+  'セキュリティ',
+  '開発',
+  'SaaS',
+  'モバイル/端末',
+  'ネットワーク',
 ];
 
 const INDUSTRY_OPTIONS = ['IT', 'その他'];
@@ -81,11 +51,12 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const [domainCategory, setDomainCategory] = React.useState('');
   const [domainDetail, setDomainDetail] = React.useState('');
-  const [selectedItStacks, setSelectedItStacks] = React.useState<string[]>([]);
+  const [selectedItCategories, setSelectedItCategories] = React.useState<string[]>([]);
   const [itOtherDetail, setItOtherDetail] = React.useState('');
   const [industry, setIndustry] = React.useState('');
   const [industryOption, setIndustryOption] = React.useState('');
   const [industryOtherDetail, setIndustryOtherDetail] = React.useState('');
+  const [translationIndustryDetail, setTranslationIndustryDetail] = React.useState('');
   const [focusTopics, setFocusTopics] = React.useState('');
   const [tasks, setTasks] = React.useState('');
   const [didEditTasks, setDidEditTasks] = React.useState(false);
@@ -112,6 +83,14 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         setIndustryOption('');
         setIndustryOtherDetail('');
       }
+      if (promptResult.input.domainCategory === '翻訳や文章校閲がしたい') {
+        setTranslationIndustryDetail(savedIndustry);
+        setIndustryOption('');
+        setIndustryOtherDetail('');
+      } else {
+        setTranslationIndustryDetail('');
+      }
+
       setFocusTopics(promptResult.input.focusTopics ?? '');
       const savedTasks = promptResult.input.tasks ?? '';
       setTasks(savedTasks);
@@ -137,12 +116,29 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
             }
             selected.push(token);
           });
-          setSelectedItStacks(selected);
+          setSelectedItCategories(selected);
           setItOtherDetail(otherText);
         }
       } else {
-        setSelectedItStacks([]);
+        setSelectedItCategories([]);
         setItOtherDetail('');
+      }
+
+      if (promptResult.input.domainCategory === '花や虫の名前が知りたい') {
+        setIndustry('生物観察のシーン');
+        setIndustryOption('');
+        setIndustryOtherDetail('');
+        setTranslationIndustryDetail('');
+      }
+
+      if (
+        promptResult.input.domainCategory === '美味しいレシピを知りたい' ||
+        promptResult.input.domainCategory === '育児'
+      ) {
+        setIndustry('');
+        setIndustryOption('');
+        setIndustryOtherDetail('');
+        setTranslationIndustryDetail('');
       }
     }
   }, [promptResult]);
@@ -151,18 +147,25 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     setDomainCategory(option);
     setFocusTopics('');
     setDidEditTasks(false);
+    setIndustry('');
+    setIndustryOption('');
+    setIndustryOtherDetail('');
+    setTranslationIndustryDetail('');
     if (!isCustomDomain(option)) {
       setDomainDetail('');
     }
     if (option !== 'IT技術を知りたい') {
-      setSelectedItStacks([]);
+      setSelectedItCategories([]);
       setItOtherDetail('');
+    }
+    if (option === '花や虫の名前が知りたい') {
+      setIndustry('生物観察のシーン');
     }
   }, []);
 
   const computeItDetail = React.useCallback(
-    (stacks: string[], other: string) => {
-      const items = [...stacks];
+    (categories: string[], other: string) => {
+      const items = [...categories];
       const otherTrimmed = other.trim();
       if (otherTrimmed.length > 0) {
         items.push(`その他：${otherTrimmed}`);
@@ -174,16 +177,18 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const effectiveDomainDetail = React.useMemo(() => {
     if (domainCategory === 'IT技術を知りたい') {
-      return computeItDetail(selectedItStacks, itOtherDetail);
+      return computeItDetail(selectedItCategories, itOtherDetail);
     }
     return domainDetail;
-  }, [computeItDetail, domainCategory, domainDetail, itOtherDetail, selectedItStacks]);
+  }, [computeItDetail, domainCategory, domainDetail, itOtherDetail, selectedItCategories]);
 
-  const handleToggleItStack = React.useCallback(
-    (stack: string) => {
-      setSelectedItStacks((prev) => {
-        const exists = prev.includes(stack);
-        const next = exists ? prev.filter((item) => item !== stack) : [...prev, stack];
+  const handleToggleItCategory = React.useCallback(
+    (category: string) => {
+      setSelectedItCategories((prev) => {
+        const exists = prev.includes(category);
+        const next = exists
+          ? prev.filter((item) => item !== category)
+          : [...prev, category];
         return next;
       });
     },
@@ -194,13 +199,16 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     if (domainCategory !== 'IT技術を知りたい') {
       return;
     }
-    const detail = computeItDetail(selectedItStacks, itOtherDetail);
+    const detail = computeItDetail(selectedItCategories, itOtherDetail);
     if (detail !== domainDetail) {
       setDomainDetail(detail);
     }
-  }, [computeItDetail, domainCategory, domainDetail, itOtherDetail, selectedItStacks]);
+  }, [computeItDetail, domainCategory, domainDetail, itOtherDetail, selectedItCategories]);
 
   const effectiveIndustry = React.useMemo(() => {
+    if (domainCategory === '翻訳や文章校閲がしたい') {
+      return translationIndustryDetail.trim();
+    }
     if (industryOption === 'IT') {
       return 'IT';
     }
@@ -209,17 +217,36 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       return trimmed.length > 0 ? `その他：${trimmed}` : 'その他';
     }
     return industry;
-  }, [industry, industryOption, industryOtherDetail]);
+  }, [
+    domainCategory,
+    industry,
+    industryOption,
+    industryOtherDetail,
+    translationIndustryDetail,
+  ]);
 
   React.useEffect(() => {
-    if (industryOption === '') {
+    if (
+      domainCategory === '翻訳や文章校閲がしたい' ||
+      industryOption === ''
+    ) {
       return;
     }
     const normalized = effectiveIndustry;
     if (normalized !== industry) {
       setIndustry(normalized);
     }
-  }, [effectiveIndustry, industry, industryOption]);
+  }, [domainCategory, effectiveIndustry, industry, industryOption]);
+
+  React.useEffect(() => {
+    if (domainCategory !== '翻訳や文章校閲がしたい') {
+      return;
+    }
+    const normalized = translationIndustryDetail.trim();
+    if (normalized !== industry) {
+      setIndustry(normalized);
+    }
+  }, [domainCategory, industry, translationIndustryDetail]);
 
   const handleTasksChange = React.useCallback((value: string) => {
     setTasks(value);
@@ -291,6 +318,17 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     ? domainTemplate.focusPlaceholder
     : 'テーマを選択すると入力例が表示されます';
 
+  const shouldHideIndustry = [
+    '花や虫の名前が知りたい',
+    '美味しいレシピを知りたい',
+    '育児',
+  ].includes(domainCategory);
+
+  const isTranslationDomain = domainCategory === '翻訳や文章校閲がしたい';
+
+  const shouldShowIndustrySection =
+    !shouldHideIndustry && (isTranslationDomain || domainCategory.length > 0);
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
@@ -347,37 +385,35 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
       {domainCategory === 'IT技術を知りたい' ? (
         <View style={styles.formGroup}>
-          <Text style={styles.sectionLabel}>興味のある分野・技術スタック</Text>
-          {IT_STACK_GROUPS.map((group) => (
-            <View key={group.title} style={styles.stackGroup}>
-              <Text style={styles.stackGroupTitle}>{group.title}</Text>
-              <View style={styles.optionList}>
-                {group.options.map((stack) => {
-                  const isSelected = selectedItStacks.includes(stack);
-                  return (
-                    <Pressable
-                      key={stack}
-                      style={[
-                        styles.optionChip,
-                        styles.stackChip,
-                        isSelected && styles.optionChipSelected,
-                      ]}
-                      onPress={() => handleToggleItStack(stack)}
-                    >
-                      <Text
-                        style={[
-                          styles.optionChipText,
-                          isSelected && styles.optionChipTextSelected,
-                        ]}
-                      >
-                        {stack}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          ))}
+          <Text style={styles.sectionLabel}>興味のある分野</Text>
+          <View style={styles.optionList}>
+            {IT_CATEGORY_OPTIONS.map((category) => {
+              const isSelected = selectedItCategories.includes(category);
+              return (
+                <Pressable
+                  key={category}
+                  style={[
+                    styles.optionChip,
+                    styles.stackChip,
+                    isSelected && styles.optionChipSelected,
+                  ]}
+                  onPress={() => handleToggleItCategory(category)}
+                >
+                  <Text
+                    style={[
+                      styles.optionChipText,
+                      isSelected && styles.optionChipTextSelected,
+                    ]}
+                  >
+                    {category}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[styles.helperText, styles.marginTopSmall]}>
+            興味のある分野は複数選択できます。詳しく指定したい内容があれば「その他（自由記述）」に記入してください。
+          </Text>
           <View style={styles.marginTopSmall}>
             <Text style={styles.stackGroupTitle}>その他（自由記述）</Text>
             <TextInput
@@ -407,57 +443,76 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : null}
 
-      <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
-        <View style={styles.optionList}>
-          {INDUSTRY_OPTIONS.map((option) => {
-            const isSelected = industryOption === option;
-            return (
-              <Pressable
-                key={option}
-                style={[
-                  styles.optionChip,
-                  styles.industryChip,
-                  isSelected && styles.optionChipSelected,
-                ]}
-                onPress={() => {
-                  if (isSelected) {
-                    setIndustryOption('');
-                    setIndustry('');
-                    setIndustryOtherDetail('');
-                  } else {
-                    setIndustryOption(option);
-                    if (option === 'IT') {
-                      setIndustry('IT');
-                      setIndustryOtherDetail('');
-                    } else {
-                      setIndustry('その他');
-                    }
-                  }
-                }}
-              >
-                <Text
-                  style={[
-                    styles.optionChipText,
-                    isSelected && styles.optionChipTextSelected,
-                  ]}
-                >
-                  {option}
-                </Text>
-              </Pressable>
-            );
-          })}
+      {shouldShowIndustrySection ? (
+        <View style={styles.formGroup}>
+          <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
+          {isTranslationDomain ? (
+            <>
+              <TextInput
+                style={[styles.input, styles.multiline]}
+                placeholder="例: 観光業のパンフレット、IT企業の採用サイト、医療業界向け資料 など"
+                value={translationIndustryDetail}
+                onChangeText={setTranslationIndustryDetail}
+                multiline
+              />
+              <Text style={styles.helperText}>
+                どの業界・場面で使われる文章かを自由に記述してください。読み手の立場や雰囲気が分かると翻訳の精度が高まります。
+              </Text>
+            </>
+          ) : (
+            <>
+              <View style={styles.optionList}>
+                {INDUSTRY_OPTIONS.map((option) => {
+                  const isSelected = industryOption === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      style={[
+                        styles.optionChip,
+                        styles.industryChip,
+                        isSelected && styles.optionChipSelected,
+                      ]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setIndustryOption('');
+                          setIndustry('');
+                          setIndustryOtherDetail('');
+                        } else {
+                          setIndustryOption(option);
+                          if (option === 'IT') {
+                            setIndustry('IT');
+                            setIndustryOtherDetail('');
+                          } else {
+                            setIndustry('その他');
+                          }
+                        }
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.optionChipText,
+                          isSelected && styles.optionChipTextSelected,
+                        ]}
+                      >
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {industryOption === 'その他' ? (
+                <TextInput
+                  style={[styles.input, styles.multiline, styles.marginTopSmall]}
+                  placeholder="詳細があれば入力してください"
+                  value={industryOtherDetail}
+                  onChangeText={setIndustryOtherDetail}
+                  multiline
+                />
+              ) : null}
+            </>
+          )}
         </View>
-        {industryOption === 'その他' ? (
-          <TextInput
-            style={[styles.input, styles.multiline, styles.marginTopSmall]}
-            placeholder="詳細があれば入力してください"
-            value={industryOtherDetail}
-            onChangeText={setIndustryOtherDetail}
-            multiline
-          />
-        ) : null}
-      </View>
+      ) : null}
 
       <View style={styles.formGroup}>
         <Text style={styles.sectionLabel}>主な実施タスク</Text>
@@ -589,9 +644,6 @@ const styles = StyleSheet.create({
   },
   optionChipTextSelected: {
     color: '#1d4ed8',
-  },
-  stackGroup: {
-    marginTop: 16,
   },
   stackGroupTitle: {
     fontSize: 12,
