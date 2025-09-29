@@ -25,12 +25,17 @@ const DOMAIN_OPTIONS = [
   '翻訳や文章校閲がしたい',
   '花や虫の名前が知りたい',
   '美味しいレシピを知りたい',
+  '育児',
+  'その他（自由記述）',
 ];
+
+const isCustomDomain = (option: string) => option.startsWith('その他');
 
 const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const { promptResult, setPromptResult, questionDraft } = useAppState();
 
   const [domainCategory, setDomainCategory] = React.useState('');
+  const [domainDetail, setDomainDetail] = React.useState('');
   const [industry, setIndustry] = React.useState('');
   const [focusTopics, setFocusTopics] = React.useState('');
   const [tasks, setTasks] = React.useState('');
@@ -40,6 +45,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   React.useEffect(() => {
     if (promptResult) {
       setDomainCategory(promptResult.input.domainCategory);
+      setDomainDetail(promptResult.input.domainDetail);
       setIndustry(promptResult.input.industry);
       setFocusTopics(promptResult.input.focusTopics ?? '');
       const savedTasks = promptResult.input.tasks ?? '';
@@ -53,6 +59,9 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     setDomainCategory(option);
     setFocusTopics('');
     setDidEditTasks(false);
+    if (!isCustomDomain(option)) {
+      setDomainDetail('');
+    }
   }, []);
 
   const handleTasksChange = React.useCallback((value: string) => {
@@ -69,12 +78,14 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     if (!didEditTasks) {
       const autoTasks = generateDefaultTasksText(
         domainCategory,
-        '',
+        domainDetail,
         industry,
       );
       setTasks(autoTasks);
     }
-  }, [domainCategory, industry, didEditTasks]);
+  }, [domainCategory, domainDetail, industry, didEditTasks]);
+
+  const isCustomDomainSelected = isCustomDomain(domainCategory);
 
   const handleGenerate = React.useCallback(() => {
     if (!domainCategory) {
@@ -82,9 +93,14 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    if (isCustomDomainSelected && domainDetail.trim().length === 0) {
+      Alert.alert('テーマの詳細を入力してください');
+      return;
+    }
+
     const input: PromptBuilderInput = {
       domainCategory,
-      domainDetail: '',
+      domainDetail,
       industry,
       focusTopics,
       tasks,
@@ -96,10 +112,12 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Main');
   }, [
     domainCategory,
+    domainDetail,
     industry,
     additionalInfo,
     setPromptResult,
     navigation,
+    isCustomDomainSelected,
   ]);
 
   const domainTemplate = getDomainTemplate(domainCategory);
@@ -144,6 +162,22 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
           })}
         </View>
       </View>
+
+      {isCustomDomainSelected ? (
+        <View style={styles.formGroup}>
+          <Text style={styles.sectionLabel}>テーマの詳細</Text>
+          <TextInput
+            style={[styles.input, styles.multiline]}
+            placeholder="どのようなテーマを扱いたいか具体的に入力してください"
+            value={domainDetail}
+            onChangeText={setDomainDetail}
+            multiline
+          />
+          <Text style={styles.helperText}>
+            例: 介護現場での人材育成、地域コミュニティの活性化 など
+          </Text>
+        </View>
+      ) : null}
 
       {domainCategory ? (
         <View style={styles.formGroup}>
