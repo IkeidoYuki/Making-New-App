@@ -1,6 +1,13 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+const PROMPT_TIPS: string[] = [
+  '「テーマ・領域」と「興味のある分野」では、取り上げたい技術名や利用シーンなどを具体的に選択・入力すると、指示が専門的になります。',
+  '「特に知りたい内容」には課題や確認したい観点、欲しい成果物の形式を箇条書きでまとめると、回答の方向性が定まりやすくなります。',
+  '「想定している業界」を書いておくと、対象ユーザーや利用場面が伝わり、業界特有の前提を反映した指示に調整できます。',
+  '「主な実施タスク」と「AIに知っておいてほしい情報」には、進めたいステップや既存の資料・制約条件を記載し、背景を共有しましょう。',
+];
+
 const HelpScreen: React.FC = () => {
   return (
     <ScrollView
@@ -16,7 +23,10 @@ const HelpScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>基本的な使い方</Text>
         <Text style={[styles.paragraph, styles.marginTopSmall]}>1. メイン画面から「ヒアリングシート」を開きます。</Text>
         <Text style={styles.paragraph}>
-          2. テーマ・背景・ゴールなどを入力してロールプロンプトを生成します。
+          2. テーマや特に知りたい内容などを入力して、ルールプロンプトを生成します。
+        </Text>
+        <Text style={styles.paragraph}>
+          想定している業界やAIに知ってほしい情報を追加すると、より要望に沿ったロールテンプレート作成が可能です。
         </Text>
         <Text style={styles.paragraph}>
           3. メイン画面で生成されたロール指示と質問文を確認し、必要に応じて編集します。
@@ -28,14 +38,17 @@ const HelpScreen: React.FC = () => {
 
       <View style={[styles.section, styles.marginTopLarge]}>
         <Text style={styles.sectionTitle}>良いロールプロンプトを作るコツ</Text>
-        <Text style={[styles.paragraph, styles.marginTopSmall]}>・背景情報は数値や状況を入れて具体的に記載する。</Text>
-        <Text style={styles.paragraph}>・期待する成果を明確に（例：アウトライン、コード例、意思決定理由）。</Text>
-        <Text style={styles.paragraph}>
-          ・回答のトーンや形式を指定すると、アウトプットの再利用性が高まります。
-        </Text>
-        <Text style={styles.paragraph}>
-          ・制約条件や避けたいことを最初に伝えておくと、修正の手間が減ります。
-        </Text>
+        {PROMPT_TIPS.map((tip, index) => (
+          <Text
+            key={tip}
+            style={[
+              styles.paragraph,
+              index === 0 ? styles.marginTopSmall : undefined,
+            ]}
+          >
+            {`・${tip}`}
+          </Text>
+        ))}
       </View>
 
       <View style={[styles.section, styles.marginTopLarge]}>
@@ -54,12 +67,6 @@ const HelpScreen: React.FC = () => {
         </Text>
       </View>
 
-      <View style={[styles.section, styles.marginTopLarge]}>
-        <Text style={styles.sectionTitle}>問い合わせ先</Text>
-        <Text style={[styles.paragraph, styles.marginTopSmall]}>
-          改善要望やバグ報告は、開発チームまでご連絡ください。GitHub Issues やチームのチャットツールでの共有をおすすめします。
-        </Text>
-      </View>
     </ScrollView>
   );
 };
