@@ -22,10 +22,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PromptBuilder'>;
 
 const DOMAIN_OPTIONS = [
   'IT技術を知りたい',
-  '翻訳と文書校閲',
+  '翻訳や文章校閲がしたい',
   '花や虫の名前が知りたい',
   '美味しいレシピを知りたい',
-  '育児',
+  '育児相談がしたい',
   'その他（自由記述）',
 ];
 
@@ -70,7 +70,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       setIndustry(savedIndustry);
 
       const isTranslation =
-        promptResult.input.domainCategory === '翻訳と文書校閲';
+        promptResult.input.domainCategory === '翻訳や文章校閲がしたい';
       const isItDomain =
         promptResult.input.domainCategory === 'IT技術を知りたい';
       const isCustom = isCustomDomain(promptResult.input.domainCategory);
@@ -144,7 +144,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
       if (
         promptResult.input.domainCategory === '美味しいレシピを知りたい' ||
-        promptResult.input.domainCategory === '育児'
+        promptResult.input.domainCategory === '育児相談がしたい'
       ) {
         setIndustry('');
         setIndustryOption('');
@@ -220,7 +220,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const effectiveIndustry = React.useMemo(() => {
     if (
-      domainCategory === '翻訳と文書校閲' ||
+      domainCategory === '翻訳や文章校閲がしたい' ||
       domainCategory === 'IT技術を知りたい' ||
       isCustomDomainSelected
     ) {
@@ -319,10 +319,10 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const shouldHideIndustry = [
     '花や虫の名前が知りたい',
     '美味しいレシピを知りたい',
-    '育児',
+    '育児相談がしたい',
   ].includes(domainCategory);
 
-  const isTranslationDomain = domainCategory === '翻訳と文書校閲';
+  const isTranslationDomain = domainCategory === '翻訳や文章校閲がしたい';
   const isFreeIndustryDomain =
     isTranslationDomain ||
     domainCategory === 'IT技術を知りたい' ||
