@@ -96,15 +96,6 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.cardBody}>
             <Text style={styles.cardLabel}>ロール指示</Text>
             <Text style={styles.promptText}>{promptResult.rolePrompt}</Text>
-            {promptResult.followUpQuestions.length > 0 && (
-              <View style={styles.followUpContainer}>
-                {promptResult.followUpQuestions.map((question, index) => (
-                  <Text key={index} style={styles.followUpText}>
-                    ・{question}
-                  </Text>
-                ))}
-              </View>
-            )}
           </View>
         </View>
       ) : (
@@ -223,14 +214,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
-  },
-  followUpContainer: {
-    marginTop: 16,
-  },
-  followUpText: {
-    fontSize: 13,
-    color: '#475569',
-    marginTop: 6,
   },
   placeholderCard: {
     backgroundColor: '#e2e8f0',

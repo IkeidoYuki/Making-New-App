@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   Alert,
+  Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useAppState } from '../context/AppStateContext';
 
 const formatTimestamp = (value: number) => {
@@ -17,11 +20,24 @@ const formatTimestamp = (value: number) => {
 };
 
 const FavoritesScreen: React.FC = () => {
-  const { favorites, history, addFavorite } = useAppState();
+  const {
+    favorites,
+    history,
+    addFavorite,
+    updateFavoritePrompt,
+    removeFavorite,
+  } = useAppState();
   const [selectedHistoryId, setSelectedHistoryId] = React.useState<string | null>(
     null,
   );
   const [favoriteName, setFavoriteName] = React.useState('');
+  const [optionsFavoriteId, setOptionsFavoriteId] = React.useState<string | null>(
+    null,
+  );
+  const [editingFavoriteId, setEditingFavoriteId] = React.useState<string | null>(
+    null,
+  );
+  const [editedPrompt, setEditedPrompt] = React.useState('');
 
   const handleSelectHistory = React.useCallback(
     (entryId: string, defaultName: string) => {
@@ -55,82 +71,249 @@ const FavoritesScreen: React.FC = () => {
     Alert.alert('お気に入りに登録しました');
   }, [addFavorite, favoriteName, history, selectedHistoryId]);
 
+  const closeOptions = React.useCallback(() => {
+    setOptionsFavoriteId(null);
+  }, []);
+
+  const openOptions = React.useCallback((favoriteId: string) => {
+    setOptionsFavoriteId(favoriteId);
+  }, []);
+
+  const activeFavorite = React.useMemo(
+    () => favorites.find((item) => item.id === optionsFavoriteId) || null,
+    [favorites, optionsFavoriteId],
+  );
+
+  const editingFavorite = React.useMemo(
+    () => favorites.find((item) => item.id === editingFavoriteId) || null,
+    [favorites, editingFavoriteId],
+  );
+
+  const handleUseInChatGPT = React.useCallback(async () => {
+    if (!activeFavorite) {
+      return;
+    }
+    const prompt = activeFavorite.result.rolePrompt;
+    try {
+      await Clipboard.setStringAsync(prompt);
+    } catch (error) {
+      Alert.alert(
+        'クリップボードにコピーできませんでした',
+        'お手数ですが手動でコピーして貼り付けてください。',
+      );
+      return;
+    }
+
+    const url = 'https://chat.openai.com/';
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) {
+      Alert.alert(
+        'ChatGPTを開けません',
+        'ブラウザで https://chat.openai.com/ にアクセスしてください。',
+      );
+      return;
+    }
+
+    await Linking.openURL(url);
+    closeOptions();
+  }, [activeFavorite, closeOptions]);
+
+  const handleShowTemplate = React.useCallback(() => {
+    if (!activeFavorite) {
+      return;
+    }
+    setEditedPrompt(activeFavorite.result.rolePrompt);
+    setEditingFavoriteId(activeFavorite.id);
+    closeOptions();
+  }, [activeFavorite, closeOptions]);
+
+  const handleDeleteFavorite = React.useCallback(() => {
+    if (!activeFavorite) {
+      return;
+    }
+    Alert.alert('お気に入りを削除しますか？', 'この操作は取り消せません。', [
+      { text: 'キャンセル', style: 'cancel' },
+      {
+        text: '削除',
+        style: 'destructive',
+        onPress: () => {
+          removeFavorite(activeFavorite.id);
+          closeOptions();
+        },
+      },
+    ]);
+  }, [activeFavorite, closeOptions, removeFavorite]);
+
+  const closeTemplateModal = React.useCallback(() => {
+    setEditingFavoriteId(null);
+    setEditedPrompt('');
+  }, []);
+
+  const handleSaveTemplate = React.useCallback(() => {
+    if (!editingFavoriteId) {
+      return;
+    }
+    const trimmed = editedPrompt.trim();
+    if (!trimmed) {
+      Alert.alert('ロールテンプレートを入力してください');
+      return;
+    }
+    updateFavoritePrompt(editingFavoriteId, trimmed);
+    Alert.alert('保存しました');
+    closeTemplateModal();
+  }, [closeTemplateModal, editedPrompt, editingFavoriteId, updateFavoritePrompt]);
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>お気に入りのロールテンプレート</Text>
+    <>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>お気に入りのロールテンプレート</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>登録済みのお気に入り</Text>
-        {favorites.length === 0 ? (
-          <Text style={styles.placeholder}>
-            まだお気に入りが登録されていません。ヒアリングシートで生成したロールプロンプトを履歴から選んで登録できます。
-          </Text>
-        ) : (
-          favorites.map((favorite) => (
-            <View key={favorite.id} style={styles.favoriteCard}>
-              <Text style={styles.favoriteName}>{favorite.name}</Text>
-              <Text style={styles.favoriteSummary}>{favorite.result.summary}</Text>
-              <Text style={styles.favoriteTimestamp}>
-                登録日: {formatTimestamp(favorite.addedAt)}
-              </Text>
-            </View>
-          ))
-        )}
-      </View>
-
-      <View style={[styles.section, styles.sectionSpacing]}>
-        <Text style={styles.sectionTitle}>過去5回分の生成履歴</Text>
-        <Text style={styles.historyListDescription}>
-          お気に入りに登録したい履歴を選び、名前を入力して「お気に入りに登録する」を押してください。
-        </Text>
-        {history.length === 0 ? (
-          <Text style={styles.placeholder}>
-            まだロールプロンプトの生成履歴がありません。ヒアリングシートからロールプロンプトを作成すると表示されます。
-          </Text>
-        ) : (
-          history.map((entry) => {
-            const isSelected = entry.id === selectedHistoryId;
-            return (
-              <View
-                key={entry.id}
-                style={[
-                  styles.historyCard,
-                  isSelected && styles.historyCardSelected,
-                ]}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>登録済みのお気に入り</Text>
+          {favorites.length === 0 ? (
+            <Text style={styles.placeholder}>
+              まだお気に入りが登録されていません。ヒアリングシートで生成したロールプロンプトを履歴から選んで登録できます。
+            </Text>
+          ) : (
+            favorites.map((favorite) => (
+              <Pressable
+                key={favorite.id}
+                style={styles.favoriteCard}
+                onPress={() => openOptions(favorite.id)}
               >
-                <Pressable
-                  onPress={() => handleSelectHistory(entry.id, entry.result.summary)}
+                <Text style={styles.favoriteName}>{favorite.name}</Text>
+                <Text style={styles.favoriteSummary}>{favorite.result.summary}</Text>
+                <Text style={styles.favoriteTimestamp}>
+                  登録日: {formatTimestamp(favorite.addedAt)}
+                </Text>
+              </Pressable>
+            ))
+          )}
+        </View>
+
+        <View style={[styles.section, styles.sectionSpacing]}>
+          <Text style={styles.sectionTitle}>過去5回分の生成履歴</Text>
+          <Text style={styles.historyListDescription}>
+            お気に入りに登録したい履歴を選び、名前を入力して「お気に入りに登録する」を押してください。
+          </Text>
+          {history.length === 0 ? (
+            <Text style={styles.placeholder}>
+              まだロールプロンプトの生成履歴がありません。ヒアリングシートからロールプロンプトを作成すると表示されます。
+            </Text>
+          ) : (
+            history.map((entry) => {
+              const isSelected = entry.id === selectedHistoryId;
+              return (
+                <View
+                  key={entry.id}
+                  style={[
+                    styles.historyCard,
+                    isSelected && styles.historyCardSelected,
+                  ]}
                 >
-                  <Text style={styles.historySummary}>{entry.result.summary}</Text>
-                  <Text style={styles.historyTimestamp}>
-                    生成日時: {formatTimestamp(entry.createdAt)}
-                  </Text>
-                </Pressable>
-                {isSelected ? (
-                  <View style={styles.favoriteForm}>
-                    <Text style={styles.inputLabel}>お気に入り名</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={favoriteName}
-                      onChangeText={setFavoriteName}
-                      placeholder="登録したい名前を入力してください"
-                    />
-                    <Pressable
-                      style={styles.addButton}
-                      onPress={handleAddFavorite}
-                    >
-                      <Text style={styles.addButtonText}>お気に入りに登録する</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })
-        )}
-      </View>
-    </ScrollView>
+                  <Pressable
+                    onPress={() => handleSelectHistory(entry.id, entry.result.summary)}
+                  >
+                    <Text style={styles.historySummary}>{entry.result.summary}</Text>
+                    <Text style={styles.historyTimestamp}>
+                      生成日時: {formatTimestamp(entry.createdAt)}
+                    </Text>
+                  </Pressable>
+                  {isSelected ? (
+                    <View style={styles.favoriteForm}>
+                      <Text style={styles.inputLabel}>お気に入り名</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={favoriteName}
+                        onChangeText={setFavoriteName}
+                        placeholder="登録したい名前を入力してください"
+                      />
+                      <Pressable
+                        style={styles.addButton}
+                        onPress={handleAddFavorite}
+                      >
+                        <Text style={styles.addButtonText}>お気に入りに登録する</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={!!activeFavorite}
+        onRequestClose={closeOptions}
+      >
+        <View style={styles.modalOverlay}>
+          <ModalBackdrop onPress={closeOptions} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {activeFavorite ? `${activeFavorite.name}の操作` : ''}
+            </Text>
+            <Pressable
+              style={[styles.modalActionButton, styles.modalPrimaryButton]}
+              onPress={handleUseInChatGPT}
+            >
+              <Text style={styles.modalPrimaryText}>ChatGPTで使う</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.modalActionButton, styles.modalSecondaryButton]}
+              onPress={handleShowTemplate}
+            >
+              <Text style={styles.modalSecondaryText}>ロールテンプレートを表示</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.modalActionButton, styles.modalDestructiveButton]}
+              onPress={handleDeleteFavorite}
+            >
+              <Text style={styles.modalDestructiveText}>削除</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={!!editingFavorite}
+        onRequestClose={closeTemplateModal}
+      >
+        <View style={styles.modalOverlay}>
+          <ModalBackdrop onPress={closeTemplateModal} />
+          <View style={styles.templateModalCard}>
+            <Text style={styles.templateModalTitle}>
+              {editingFavorite
+                ? `${editingFavorite.name}のロールテンプレート`
+                : 'ロールテンプレート'}
+            </Text>
+            <TextInput
+              style={styles.templateInput}
+              multiline
+              textAlignVertical="top"
+              value={editedPrompt}
+              onChangeText={setEditedPrompt}
+            />
+            <Pressable
+              style={styles.templateSaveButton}
+              onPress={handleSaveTemplate}
+            >
+              <Text style={styles.templateSaveButtonText}>保存</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
+
+const ModalBackdrop: React.FC<{ onPress: () => void }> = ({ onPress }) => (
+  <Pressable style={styles.modalBackdrop} onPress={onPress} />
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -245,6 +428,109 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
     fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  modalActionButton: {
+    marginTop: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalPrimaryButton: {
+    backgroundColor: '#2563eb',
+  },
+  modalSecondaryButton: {
+    backgroundColor: '#e2e8f0',
+  },
+  modalDestructiveButton: {
+    backgroundColor: '#ef4444',
+  },
+  modalPrimaryText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  modalSecondaryText: {
+    color: '#0f172a',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  modalDestructiveText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  templateModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '85%',
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  templateModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  templateInput: {
+    borderWidth: 1,
+    borderColor: '#cbd5f5',
+    borderRadius: 12,
+    padding: 14,
+    minHeight: 220,
+    backgroundColor: '#f8fafc',
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#0f172a',
+  },
+  templateSaveButton: {
+    marginTop: 20,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  templateSaveButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
 

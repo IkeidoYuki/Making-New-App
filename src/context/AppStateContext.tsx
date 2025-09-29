@@ -10,6 +10,8 @@ export interface AppStateContextValue {
   history: PromptHistoryEntry[];
   favorites: FavoriteEntry[];
   addFavorite: (name: string, result: PromptResult) => void;
+  updateFavoritePrompt: (id: string, rolePrompt: string) => void;
+  removeFavorite: (id: string) => void;
 }
 
 export interface PromptHistoryEntry {
@@ -90,6 +92,23 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
     });
   }, []);
 
+  const updateFavoritePrompt = React.useCallback(
+    (id: string, rolePrompt: string) => {
+      setFavorites((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, result: { ...item.result, rolePrompt } }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  const removeFavorite = React.useCallback((id: string) => {
+    setFavorites((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
   const reset = React.useCallback(() => {
     setPromptResultState(null);
     setQuestionDraft('');
@@ -105,6 +124,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       history,
       favorites,
       addFavorite,
+      updateFavoritePrompt,
+      removeFavorite,
     }),
     [
       promptResult,
@@ -115,6 +136,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       history,
       favorites,
       addFavorite,
+      updateFavoritePrompt,
+      removeFavorite,
     ],
   );
 
