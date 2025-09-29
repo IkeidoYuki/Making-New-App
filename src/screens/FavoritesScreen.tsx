@@ -1,8 +1,10 @@
 import React from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -283,21 +285,33 @@ const FavoritesScreen: React.FC = () => {
         visible={!!editingFavorite}
         onRequestClose={closeTemplateModal}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+        >
           <ModalBackdrop onPress={closeTemplateModal} />
           <View style={styles.templateModalCard}>
-            <Text style={styles.templateModalTitle}>
-              {editingFavorite
-                ? `${editingFavorite.name}のロールテンプレート`
-                : 'ロールテンプレート'}
-            </Text>
-            <TextInput
-              style={styles.templateInput}
-              multiline
-              textAlignVertical="top"
-              value={editedPrompt}
-              onChangeText={setEditedPrompt}
-            />
+            <View style={styles.templateModalBody}>
+              <ScrollView
+                style={styles.templateModalScrollArea}
+                contentContainerStyle={styles.templateModalContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.templateModalTitle}>
+                  {editingFavorite
+                    ? `${editingFavorite.name}のロールテンプレート`
+                    : 'ロールテンプレート'}
+                </Text>
+                <TextInput
+                  style={styles.templateInput}
+                  multiline
+                  textAlignVertical="top"
+                  value={editedPrompt}
+                  onChangeText={setEditedPrompt}
+                />
+              </ScrollView>
+            </View>
             <Pressable
               style={styles.templateSaveButton}
               onPress={handleSaveTemplate}
@@ -305,7 +319,7 @@ const FavoritesScreen: React.FC = () => {
               <Text style={styles.templateSaveButtonText}>保存</Text>
             </Pressable>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
@@ -494,13 +508,25 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     backgroundColor: '#ffffff',
     borderRadius: 18,
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 24,
     shadowColor: '#0f172a',
     shadowOpacity: 0.2,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 6 },
     elevation: 10,
+  },
+  templateModalBody: {
+    flexGrow: 1,
+    flexShrink: 1,
+    width: '100%',
+    maxHeight: '100%',
+  },
+  templateModalScrollArea: {
+    width: '100%',
+  },
+  templateModalContent: {
+    paddingBottom: 12,
   },
   templateModalTitle: {
     fontSize: 16,

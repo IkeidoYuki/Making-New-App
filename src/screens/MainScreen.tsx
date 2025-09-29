@@ -65,10 +65,9 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>AIロールプロンプト生成アシスタント</Text>
+      <Text style={styles.title}>AIプロンプト生成サポート</Text>
       <Text style={[styles.description, styles.sectionSpacing]}>
-        聞きたい内容に合わせてロールプロンプトを自動で組み立てるよ！
-        まずはヒアリングシートに入力して、すぐ使える指示文を用意しよう。
+        用途に合わせてロールプロンプトを自動生成します。ヒアリングシートに入力して、すぐに使える指示文を作成しましょう。
       </Text>
 
       <View style={[styles.buttonGroup, styles.sectionSpacing]}>
