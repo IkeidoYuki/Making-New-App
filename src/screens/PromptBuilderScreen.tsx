@@ -29,6 +29,51 @@ const DOMAIN_OPTIONS = [
   'その他（自由記述）',
 ];
 
+const IT_STACK_GROUPS = [
+  {
+    title: 'クラウド',
+    options: ['AWS', 'Azure', 'GCP', 'OCI', 'Cloudflare'],
+  },
+  {
+    title: 'コンテナ',
+    options: ['Docker', 'Kubernetes', 'Helm', 'ArgoCD'],
+  },
+  {
+    title: 'IaC/自動化',
+    options: ['Terraform', 'Ansible', 'Pulumi', 'GitHub Actions', 'GitLab CI'],
+  },
+  {
+    title: '監視/APM',
+    options: ['Prometheus', 'Grafana', 'OpenTelemetry', 'Datadog', 'New Relic'],
+  },
+  {
+    title: 'DB',
+    options: ['MySQL', 'PostgreSQL', 'SQL Server', 'Redis', 'MongoDB', 'Kafka'],
+  },
+  {
+    title: 'セキュリティ',
+    options: ['Okta', 'Entra ID', 'CrowdStrike', 'Zscaler', 'WAF'],
+  },
+  {
+    title: '開発',
+    options: ['Node.js', 'Python', 'Java', 'Go', 'React', 'Next.js', 'Swift', 'Kotlin'],
+  },
+  {
+    title: 'SaaS',
+    options: ['Microsoft 365', 'Google Workspace', 'Slack', 'Notion'],
+  },
+  {
+    title: 'モバイル/端末',
+    options: ['iOS', 'Android', 'iPadOS', 'Windows', 'macOS'],
+  },
+  {
+    title: 'ネットワーク',
+    options: ['BGP', 'DNS', 'IPSec', 'WireGuard'],
+  },
+];
+
+const INDUSTRY_OPTIONS = ['IT', 'その他'];
+
 const isCustomDomain = (option: string) => option.startsWith('その他');
 
 const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
@@ -36,7 +81,11 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const [domainCategory, setDomainCategory] = React.useState('');
   const [domainDetail, setDomainDetail] = React.useState('');
+  const [selectedItStacks, setSelectedItStacks] = React.useState<string[]>([]);
+  const [itOtherDetail, setItOtherDetail] = React.useState('');
   const [industry, setIndustry] = React.useState('');
+  const [industryOption, setIndustryOption] = React.useState('');
+  const [industryOtherDetail, setIndustryOtherDetail] = React.useState('');
   const [focusTopics, setFocusTopics] = React.useState('');
   const [tasks, setTasks] = React.useState('');
   const [didEditTasks, setDidEditTasks] = React.useState(false);
@@ -46,12 +95,55 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     if (promptResult) {
       setDomainCategory(promptResult.input.domainCategory);
       setDomainDetail(promptResult.input.domainDetail);
-      setIndustry(promptResult.input.industry);
+      const savedIndustry = promptResult.input.industry;
+      setIndustry(savedIndustry);
+      if (savedIndustry === 'IT') {
+        setIndustryOption('IT');
+        setIndustryOtherDetail('');
+      } else if (savedIndustry.startsWith('その他')) {
+        setIndustryOption('その他');
+        const detail = savedIndustry.replace(/^その他[：:（(、\s)]*/u, '')
+          .replace(/[）)]$/u, '');
+        setIndustryOtherDetail(detail === 'その他' ? '' : detail);
+      } else if (savedIndustry.trim().length > 0) {
+        setIndustryOption('その他');
+        setIndustryOtherDetail(savedIndustry);
+      } else {
+        setIndustryOption('');
+        setIndustryOtherDetail('');
+      }
       setFocusTopics(promptResult.input.focusTopics ?? '');
       const savedTasks = promptResult.input.tasks ?? '';
       setTasks(savedTasks);
       setDidEditTasks(savedTasks.trim().length > 0);
       setAdditionalInfo(promptResult.input.additionalInfo);
+
+      if (promptResult.input.domainCategory === 'IT技術を知りたい') {
+        const detail = promptResult.input.domainDetail;
+        if (detail) {
+          const tokens = detail.split(/[、,]/).map((item) => item.trim());
+          const selected: string[] = [];
+          let otherText = '';
+          tokens.forEach((token) => {
+            if (!token) {
+              return;
+            }
+            if (token.startsWith('その他')) {
+              otherText = token
+                .replace(/^その他[：:（(]/, '')
+                .replace(/[）)]$/u, '')
+                .trim();
+              return;
+            }
+            selected.push(token);
+          });
+          setSelectedItStacks(selected);
+          setItOtherDetail(otherText);
+        }
+      } else {
+        setSelectedItStacks([]);
+        setItOtherDetail('');
+      }
     }
   }, [promptResult]);
 
@@ -62,7 +154,72 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     if (!isCustomDomain(option)) {
       setDomainDetail('');
     }
+    if (option !== 'IT技術を知りたい') {
+      setSelectedItStacks([]);
+      setItOtherDetail('');
+    }
   }, []);
+
+  const computeItDetail = React.useCallback(
+    (stacks: string[], other: string) => {
+      const items = [...stacks];
+      const otherTrimmed = other.trim();
+      if (otherTrimmed.length > 0) {
+        items.push(`その他：${otherTrimmed}`);
+      }
+      return items.join('、');
+    },
+    [],
+  );
+
+  const effectiveDomainDetail = React.useMemo(() => {
+    if (domainCategory === 'IT技術を知りたい') {
+      return computeItDetail(selectedItStacks, itOtherDetail);
+    }
+    return domainDetail;
+  }, [computeItDetail, domainCategory, domainDetail, itOtherDetail, selectedItStacks]);
+
+  const handleToggleItStack = React.useCallback(
+    (stack: string) => {
+      setSelectedItStacks((prev) => {
+        const exists = prev.includes(stack);
+        const next = exists ? prev.filter((item) => item !== stack) : [...prev, stack];
+        return next;
+      });
+    },
+    [],
+  );
+
+  React.useEffect(() => {
+    if (domainCategory !== 'IT技術を知りたい') {
+      return;
+    }
+    const detail = computeItDetail(selectedItStacks, itOtherDetail);
+    if (detail !== domainDetail) {
+      setDomainDetail(detail);
+    }
+  }, [computeItDetail, domainCategory, domainDetail, itOtherDetail, selectedItStacks]);
+
+  const effectiveIndustry = React.useMemo(() => {
+    if (industryOption === 'IT') {
+      return 'IT';
+    }
+    if (industryOption === 'その他') {
+      const trimmed = industryOtherDetail.trim();
+      return trimmed.length > 0 ? `その他：${trimmed}` : 'その他';
+    }
+    return industry;
+  }, [industry, industryOption, industryOtherDetail]);
+
+  React.useEffect(() => {
+    if (industryOption === '') {
+      return;
+    }
+    const normalized = effectiveIndustry;
+    if (normalized !== industry) {
+      setIndustry(normalized);
+    }
+  }, [effectiveIndustry, industry, industryOption]);
 
   const handleTasksChange = React.useCallback((value: string) => {
     setTasks(value);
@@ -78,15 +235,20 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     if (!didEditTasks) {
       const autoTasks = generateDefaultTasksText(
         domainCategory,
-        domainDetail,
-        industry,
+        effectiveDomainDetail,
+        effectiveIndustry,
       );
       setTasks(autoTasks);
     }
-  }, [domainCategory, domainDetail, industry, didEditTasks]);
+  }, [
+    domainCategory,
+    effectiveDomainDetail,
+    effectiveIndustry,
+    didEditTasks,
+  ]);
 
   const isCustomDomainSelected = isCustomDomain(domainCategory);
-
+  
   const handleGenerate = React.useCallback(() => {
     if (!domainCategory) {
       Alert.alert('テーマ・領域を選択してください');
@@ -100,8 +262,8 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
     const input: PromptBuilderInput = {
       domainCategory,
-      domainDetail,
-      industry,
+      domainDetail: effectiveDomainDetail,
+      industry: effectiveIndustry,
       focusTopics,
       tasks,
       additionalInfo,
@@ -113,11 +275,15 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   }, [
     domainCategory,
     domainDetail,
-    industry,
+    effectiveDomainDetail,
+    effectiveIndustry,
+    focusTopics,
+    tasks,
     additionalInfo,
     setPromptResult,
     navigation,
     isCustomDomainSelected,
+    questionDraft,
   ]);
 
   const domainTemplate = getDomainTemplate(domainCategory);
@@ -179,6 +345,52 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : null}
 
+      {domainCategory === 'IT技術を知りたい' ? (
+        <View style={styles.formGroup}>
+          <Text style={styles.sectionLabel}>興味のある分野・技術スタック</Text>
+          {IT_STACK_GROUPS.map((group) => (
+            <View key={group.title} style={styles.stackGroup}>
+              <Text style={styles.stackGroupTitle}>{group.title}</Text>
+              <View style={styles.optionList}>
+                {group.options.map((stack) => {
+                  const isSelected = selectedItStacks.includes(stack);
+                  return (
+                    <Pressable
+                      key={stack}
+                      style={[
+                        styles.optionChip,
+                        styles.stackChip,
+                        isSelected && styles.optionChipSelected,
+                      ]}
+                      onPress={() => handleToggleItStack(stack)}
+                    >
+                      <Text
+                        style={[
+                          styles.optionChipText,
+                          isSelected && styles.optionChipTextSelected,
+                        ]}
+                      >
+                        {stack}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+          <View style={styles.marginTopSmall}>
+            <Text style={styles.stackGroupTitle}>その他（自由記述）</Text>
+            <TextInput
+              style={[styles.input, styles.multiline]}
+              placeholder="特定のサービス名や環境など、追加で指定したい内容があれば入力してください"
+              value={itOtherDetail}
+              onChangeText={setItOtherDetail}
+              multiline
+            />
+          </View>
+        </View>
+      ) : null}
+
       {domainCategory ? (
         <View style={styles.formGroup}>
           <Text style={styles.sectionLabel}>特に知りたい内容（任意）</Text>
@@ -197,13 +409,54 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.formGroup}>
         <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="業界が決まっていれば入力してください"
-          value={industry}
-          onChangeText={setIndustry}
-          multiline
-        />
+        <View style={styles.optionList}>
+          {INDUSTRY_OPTIONS.map((option) => {
+            const isSelected = industryOption === option;
+            return (
+              <Pressable
+                key={option}
+                style={[
+                  styles.optionChip,
+                  styles.industryChip,
+                  isSelected && styles.optionChipSelected,
+                ]}
+                onPress={() => {
+                  if (isSelected) {
+                    setIndustryOption('');
+                    setIndustry('');
+                    setIndustryOtherDetail('');
+                  } else {
+                    setIndustryOption(option);
+                    if (option === 'IT') {
+                      setIndustry('IT');
+                      setIndustryOtherDetail('');
+                    } else {
+                      setIndustry('その他');
+                    }
+                  }
+                }}
+              >
+                <Text
+                  style={[
+                    styles.optionChipText,
+                    isSelected && styles.optionChipTextSelected,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {industryOption === 'その他' ? (
+          <TextInput
+            style={[styles.input, styles.multiline, styles.marginTopSmall]}
+            placeholder="詳細があれば入力してください"
+            value={industryOtherDetail}
+            onChangeText={setIndustryOtherDetail}
+            multiline
+          />
+        ) : null}
       </View>
 
       <View style={styles.formGroup}>
@@ -336,6 +589,22 @@ const styles = StyleSheet.create({
   },
   optionChipTextSelected: {
     color: '#1d4ed8',
+  },
+  stackGroup: {
+    marginTop: 16,
+  },
+  stackGroupTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  stackChip: {
+    flexBasis: '30%',
+    minWidth: 96,
+  },
+  industryChip: {
+    flexBasis: '45%',
   },
   primaryButton: {
     backgroundColor: '#2563eb',

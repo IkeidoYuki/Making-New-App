@@ -55,35 +55,82 @@ function createDefaultTasks(
   lines: string[],
 ): string[] {
   return [
-    'AIは以下を実施します：',
+    'AIは以下を行います：',
     ...lines.map((line) =>
       line.replace('{industry}', context.industryDisplay),
     ),
   ];
 }
 
+const IT_OUTPUT_CONDITIONS = [
+  '回答は日本語で出力してください。',
+  '構成は「概要 → 詳細 → 関連Tips」を基本フォーマットとしてください。',
+  '利用シーンや業界の特性（セキュリティ、可用性、法令順守など）が関係する場合は必ず言及してください。',
+  '質問に応じて「ベストプラクティス」「注意点」「構成サンプル」「追加提案」などを1～3点で簡潔にまとめてください。',
+  '漏れなく、簡潔かつ体系的に説明してください。必要に応じて段階的（ステップバイステップ）に解説してください。',
+  '不明点やカスタマイズの希望があれば、追って相談できる旨を案内してください。',
+  'レビュー指針に従い、自己レビューを2回行ってから回答してください。',
+];
+
+const DEFAULT_OUTPUT_CONDITIONS = [
+  '日本語で入力してください。',
+  '回答は体系的に（概要→詳細→関連Tips）を基本フォーマットとしてください。',
+  '利用シーンや業界の特性（セキュリティ・可用性・法令順守など）が関係する場合は必ず言及してください。',
+  '質問に応じて「ベストプラクティス」「注意点」「構成サンプル」「追加提案」などを1～3ポイントでまとめてください。',
+  'じっくり考えた上で、漏れなく簡潔・網羅的に回答してください。',
+  '必要に応じて段階的（ステップバイステップ）に解説を行ってください。',
+  'ご不明点やカスタマイズ希望は、追加でご相談ください。',
+  'レビュー指針に従って、2回レビューしてから回答してください。',
+];
+
+const IT_REVIEW_GUIDELINES = [
+  '依頼内容を網羅的に解決しているか。',
+  'ユーザーが迷わない構成・ヒアリングになっているか。',
+  '論理の飛躍や抜け漏れ、不明瞭な点がないか。',
+  '回答内容に矛盾がないか。',
+];
+
+const DEFAULT_REVIEW_GUIDELINES = [
+  '依頼された内容を網羅的に解決するものとなっているか',
+  'ユーザーが迷わない構成・ヒアリングになっているか確認してください。',
+  '論理飛躍やヌケモレ、不明瞭な点がないか全面的に見直してください。',
+  '回答内容に矛盾がないか確認してください。',
+];
+
+function getOutputConditions(domainCategory: string): string[] {
+  if (domainCategory === 'IT技術を知りたい') {
+    return IT_OUTPUT_CONDITIONS;
+  }
+  return DEFAULT_OUTPUT_CONDITIONS;
+}
+
+function getReviewGuidelines(domainCategory: string): string[] {
+  if (domainCategory === 'IT技術を知りたい') {
+    return IT_REVIEW_GUIDELINES;
+  }
+  return DEFAULT_REVIEW_GUIDELINES;
+}
+
 const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
   'IT技術を知りたい': {
     focusPlaceholder:
-      '例: Linuxコマンドの使い分け、クラウド構成の考え方、エラー解決のヒント など',
-    roleDefinition: ({ domain, industryDisplay, hasIndustry }) => {
-      const industrySentence = hasIndustry
-        ? `${industryDisplay}の利用シーンを想定し、`
-        : '利用者のスキルレベルに合わせて、';
+      '例: AWSアーキテクチャ設計、Kubernetes運用のベストプラクティス、Terraformによる自動化 など',
+    roleDefinition: ({ domain, focusLabel }) => {
       return [
-        `あなたは${domain}をわかりやすく解説するテクニカルメンターです。`,
-        `${industrySentence}基礎から応用まで丁寧に道筋を示し、背景知識が少なくても理解できるように伝えてください。`,
-        '設定手順や注意点、参考になる追加リソースも提案してください。',
+        `あなたは、「${domain}について知りたい」という利用者の要望に対し、わかりやすく解説するテクニカルメンターです。`,
+        '利用者のスキルレベルに合わせて、基礎から応用までの道筋を丁寧に示し、前提知識が少なくても理解できるように説明してください。',
+        '設定手順や注意点、参考となる追加リソースも提案してください。',
+        `特に知りたい内容: ${focusLabel}`,
       ].join('\n');
     },
-    defaultTasks: (context) =>
-      createDefaultTasks(context, [
-        `・${context.domain}に関する前提知識の整理と全体像の説明`,
-        '・考え方や用語の意味を噛み砕いて紹介',
-        `・{industry}でありがちなつまずきポイントと対処法の提示`,
-        '・サンプルコードやステップバイステップの手順があれば提示',
-        '・追加で学ぶ際に役立つドキュメントや練習課題の提案',
-      ]),
+    defaultTasks: () => [
+      'AIは以下を行います：',
+      '- （その他・自由記述の内容を含む）現状と課題の整理、目的の明確化',
+      '- 実行可能な選択肢と検討ステップの提示',
+      '- 想定シーンに関係する制約・ルール・関係者の整理',
+      '- リスクと対応策、必要な準備事項の助言',
+      '- 追加で確認すべき観点や参考情報の提案',
+    ],
   },
   '翻訳や文章校閲がしたい': {
     focusPlaceholder:
@@ -154,13 +201,18 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
   育児: {
     focusPlaceholder:
       '例: 夜泣き対策、イヤイヤ期の接し方、保育園選びのポイント など',
-    roleDefinition: ({ domain, industryDisplay, hasIndustry }) => {
+    roleDefinition: ({
+      domain,
+      industryDisplay,
+      hasIndustry,
+      focusLabel,
+    }) => {
       const lifestyleSentence = hasIndustry
         ? `${industryDisplay}で想定される生活リズムやサポート体制を踏まえ、`
         : '家庭の状況や子どもの月齢に合わせて、';
       return [
         `あなたは${domain}に関する悩みを共に考える育児コンシェルジュです。`,
-        `${lifestyleSentence}保護者の不安を和らげながら、日常で実践しやすいアドバイスを提案してください。`,
+        `${lifestyleSentence}保護者の不安を和らげながら、${focusLabel}に寄り添って日常で実践しやすいアドバイスを提案してください。`,
         '専門家の見解や信頼できる情報源も紹介してください。',
       ].join('\n');
     },
@@ -207,6 +259,29 @@ export function resolveDomainLabel(
 ): string {
   const trimmedCategory = domainCategory.trim();
   const trimmedDetail = domainDetail.trim();
+  const formatDetailItem = (item: string) => {
+    const trimmed = item.trim();
+    if (!trimmed) {
+      return '';
+    }
+    const otherMatch = trimmed.match(/^その他[：:](.*)$/);
+    if (otherMatch) {
+      const detail = otherMatch[1].trim();
+      return detail.length > 0 ? `その他（${detail}）` : 'その他';
+    }
+    return trimmed;
+  };
+  if (trimmedCategory === 'IT技術を知りたい') {
+    if (trimmedDetail.length === 0) {
+      return 'IT技術';
+    }
+    const detailLabel = trimmedDetail
+      .split(/[、,]/)
+      .map(formatDetailItem)
+      .filter((item) => item.length > 0)
+      .join('、');
+    return detailLabel.length > 0 ? `IT技術（${detailLabel}）` : 'IT技術';
+  }
   if (trimmedCategory.startsWith('その他')) {
     return trimmedDetail || trimmedCategory || defaults.domain;
   }
@@ -221,6 +296,12 @@ export function resolveIndustryDisplay(industry: string): {
   const raw = industry.trim();
   if (!raw) {
     return { hasIndustry: false, display: '想定シーン', label: defaults.industry };
+  }
+  const otherMatch = raw.match(/^その他[：:](.*)$/);
+  if (otherMatch) {
+    const detail = otherMatch[1].trim();
+    const label = detail.length > 0 ? `その他（${detail}）` : 'その他';
+    return { hasIndustry: true, display: label, label };
   }
   return { hasIndustry: true, display: raw, label: raw };
 }
@@ -287,23 +368,11 @@ export function buildPrompt(
         ? `- ${trimmedFocus}`
         : '- 現時点で特に深掘りしたい項目は指定されていません。';
 
-  const outputConditions = [
-    '日本語で入力してください。',
-    '回答は体系的に（概要→詳細→関連Tips）を基本フォーマットとしてください。',
-    '利用シーンや業界の特性（セキュリティ・可用性・法令順守など）が関係する場合は必ず言及してください。',
-    '質問に応じて「ベストプラクティス」「注意点」「構成サンプル」「追加提案」などを1～3ポイントでまとめてください。',
-    'じっくり考えた上で、漏れなく簡潔・網羅的に回答してください。',
-    '必要に応じて段階的（ステップバイステップ）に解説を行ってください。',
-    'ご不明点やカスタマイズ希望は、追加でご相談ください。',
-    'レビュー指針に従って、2回レビューしてから回答してください。',
-  ].map((item) => `- ${item}`).join('\n');
+  const outputConditions = getOutputConditions(input.domainCategory)
+    .map((item) => `- ${item}`)
+    .join('\n');
 
-  const reviewGuidelines = [
-    '依頼された内容を網羅的に解決するものとなっているか',
-    'ユーザーが迷わない構成・ヒアリングになっているか確認してください。',
-    '論理飛躍やヌケモレ、不明瞭な点がないか全面的に見直してください。',
-    '回答内容に矛盾がないか確認してください。',
-  ]
+  const reviewGuidelines = getReviewGuidelines(input.domainCategory)
     .map((item) => `- ${item}`)
     .join('\n');
 
