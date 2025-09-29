@@ -70,7 +70,11 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       const industrySentence = hasIndustry
         ? `${industryDisplay}の利用シーンを想定し、`
         : '利用者のスキルレベルに合わせて、';
-      return `あなたは${domain}をわかりやすく解説するテクニカルメンターです。\n${industrySentence}基礎から応用まで丁寧に道筋を示し、背景知識が少なくても理解できるように伝えてください。\n設定手順や注意点、参考になる追加リソースも提案してください。`;
+      return [
+        `あなたは${domain}をわかりやすく解説するテクニカルメンターです。`,
+        `${industrySentence}基礎から応用まで丁寧に道筋を示し、背景知識が少なくても理解できるように伝えてください。`,
+        '設定手順や注意点、参考になる追加リソースも提案してください。',
+      ].join('\n');
     },
     defaultTasks: (context) =>
       createDefaultTasks(context, [
@@ -88,7 +92,11 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       const toneSentence = hasIndustry
         ? `${industryDisplay}で好まれるトーンや専門用語に注意しつつ、`
         : '伝えたい印象や読み手のレベルに合わせて、';
-      return `あなたは文章の翻訳と校閲を行うエディターです。\n${toneSentence}原文の意図を正確に保ちながら、自然で読みやすい表現に仕上げてください。\n改善理由や複数案の比較、細かなニュアンスの違いにも触れてください。`;
+      return [
+        'あなたは文章の翻訳と校閲を行うエディターです。',
+        `${toneSentence}原文の意図を正確に保ちながら、自然で読みやすい表現に仕上げてください。`,
+        '改善理由や複数案の比較、細かなニュアンスの違いにも触れてください。',
+      ].join('\n');
     },
     defaultTasks: (context) =>
       createDefaultTasks(context, [
@@ -106,7 +114,11 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       const habitatSentence = hasIndustry
         ? `${industryDisplay}で見られる生息環境や季節感を踏まえ、`
         : '観察された環境・季節・特徴を基に、';
-      return `あなたは身近な自然観察を手伝うフィールドガイドです。\n${habitatSentence}候補となる種を複数挙げ、識別のポイントや似ている種との違いを丁寧に説明してください。\n安全面の注意や追加で観察すると良い点があれば教えてください。`;
+      return [
+        'あなたは身近な自然観察を手伝うフィールドガイドです。',
+        `${habitatSentence}候補となる種を複数挙げ、識別のポイントや似ている種との違いを丁寧に説明してください。`,
+        '安全面の注意や追加で観察すると良い点があれば教えてください。',
+      ].join('\n');
     },
     defaultTasks: (context) =>
       createDefaultTasks(context, [
@@ -124,7 +136,11 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       const servingSentence = hasIndustry
         ? `${industryDisplay}に合わせた味付けや提供シーンを意識し、`
         : '料理の経験値に合わせて失敗しにくい手順で、';
-      return `あなたは家庭で再現しやすい料理を提案するレシピプランナーです。\n${servingSentence}材料の入手性や工程の分かりやすさにも配慮し、味の決め手や盛り付けのコツまで教えてください。\nアレルギーや代替案にも触れてください。`;
+      return [
+        'あなたは家庭で再現しやすい料理を提案するレシピプランナーです。',
+        `${servingSentence}材料の入手性や工程の分かりやすさにも配慮し、味の決め手や盛り付けのコツまで教えてください。`,
+        'アレルギーや代替案にも触れてください。',
+      ].join('\n');
     },
     defaultTasks: (context) =>
       createDefaultTasks(context, [
@@ -135,6 +151,28 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
         '・盛り付け方や保存方法、アレルギー時の代替食材の提案',
       ]),
   },
+  育児: {
+    focusPlaceholder:
+      '例: 夜泣き対策、イヤイヤ期の接し方、保育園選びのポイント など',
+    roleDefinition: ({ domain, industryDisplay, hasIndustry }) => {
+      const lifestyleSentence = hasIndustry
+        ? `${industryDisplay}で想定される生活リズムやサポート体制を踏まえ、`
+        : '家庭の状況や子どもの月齢に合わせて、';
+      return [
+        `あなたは${domain}に関する悩みを共に考える育児コンシェルジュです。`,
+        `${lifestyleSentence}保護者の不安を和らげながら、日常で実践しやすいアドバイスを提案してください。`,
+        '専門家の見解や信頼できる情報源も紹介してください。',
+      ].join('\n');
+    },
+    defaultTasks: (context) =>
+      createDefaultTasks(context, [
+        `・${context.domain}に関する状況整理（子どもの年齢や家庭環境など）`,
+        '・保護者の気持ちに寄り添った声かけやコミュニケーションの提案',
+        `・{industry}で利用できる行政・民間の支援制度や相談先の紹介`,
+        '・生活リズムやケアのコツ、安全面での注意事項',
+        '・信頼できる育児情報源や追加で確認したいポイントの提案',
+      ]),
+  },
 };
 
 const DEFAULT_TEMPLATE: DomainTemplate = {
@@ -143,7 +181,11 @@ const DEFAULT_TEMPLATE: DomainTemplate = {
     const scope = hasIndustry
       ? `${industryDisplay}の事情を理解し、`
       : '対象領域の一般的な事情を理解し、';
-    return `あなたは「${domain}の課題解決」を支援する専門家です。\n${scope}${domain}に関する多角的な知見をもとに、現状整理から改善策の提示まで総合的に助言してください。\n背景・制約・利害関係者を踏まえた現実的な提案を行います。`;
+    return [
+      `あなたは「${domain}」に関する課題解決を支援する専門家です。`,
+      `${scope}${domain}に関する多角的な知見をもとに、現状整理から改善策の提示まで総合的に助言してください。`,
+      '背景・制約・利害関係者を踏まえた現実的な提案を行います。',
+    ].join('\n');
   },
   defaultTasks: (context) =>
     createDefaultTasks(context, [
@@ -163,9 +205,12 @@ export function resolveDomainLabel(
   domainCategory: string,
   domainDetail: string,
 ): string {
-  return domainCategory === 'その他' && domainDetail.trim()
-    ? domainDetail.trim()
-    : domainCategory.trim() || defaults.domain;
+  const trimmedCategory = domainCategory.trim();
+  const trimmedDetail = domainDetail.trim();
+  if (trimmedCategory.startsWith('その他')) {
+    return trimmedDetail || trimmedCategory || defaults.domain;
+  }
+  return trimmedCategory || defaults.domain;
 }
 
 export function resolveIndustryDisplay(industry: string): {
