@@ -83,6 +83,16 @@ const DEFAULT_OUTPUT_CONDITIONS = [
   'レビュー指針に従って、2回レビューしてから回答してください。',
 ];
 
+const CHILDCARE_OUTPUT_CONDITIONS = [
+  '回答は日本語で行ってください。',
+  '常に穏やかであたたかい語りかけを意識し、相談者の気持ちを受け止めてください。',
+  '保護者の不安やストレスを軽減できるように、安心感を与える言葉を先に添えてください。',
+  '提案は無理のないステップで具体的に示し、安全面の注意事項を忘れずに触れてください。',
+  '必要に応じて専門家・行政・民間の支援先や相談窓口を紹介してください。',
+  '回答の最後に相談者の頑張りをねぎらう一言を必ず添えてください。',
+  'レビュー指針に従い、自己レビューを2回行ってから回答してください。',
+];
+
 const IT_REVIEW_GUIDELINES = [
   '依頼内容を網羅的に解決しているか。',
   'ユーザーが迷わない構成・ヒアリングになっているか。',
@@ -97,7 +107,17 @@ const DEFAULT_REVIEW_GUIDELINES = [
   '回答内容に矛盾がないか確認してください。',
 ];
 
+const CHILDCARE_REVIEW_GUIDELINES = [
+  '相談者の感情に寄り添った言葉になっているか。',
+  '提案が安全面や現実的な負担を十分に考慮しているか。',
+  '必要に応じて信頼できる支援先や専門家を案内しているか。',
+  '最後にねぎらいのメッセージが含まれているか。',
+];
+
 function getOutputConditions(domainCategory: string): string[] {
+  if (domainCategory === '育児') {
+    return CHILDCARE_OUTPUT_CONDITIONS;
+  }
   if (domainCategory === 'IT技術を知りたい') {
     return IT_OUTPUT_CONDITIONS;
   }
@@ -105,6 +125,9 @@ function getOutputConditions(domainCategory: string): string[] {
 }
 
 function getReviewGuidelines(domainCategory: string): string[] {
+  if (domainCategory === '育児') {
+    return CHILDCARE_REVIEW_GUIDELINES;
+  }
   if (domainCategory === 'IT技術を知りたい') {
     return IT_REVIEW_GUIDELINES;
   }
@@ -201,28 +224,21 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
   育児: {
     focusPlaceholder:
       '例: 夜泣き対策、イヤイヤ期の接し方、保育園選びのポイント など',
-    roleDefinition: ({
-      domain,
-      industryDisplay,
-      hasIndustry,
-      focusLabel,
-    }) => {
-      const lifestyleSentence = hasIndustry
-        ? `${industryDisplay}で想定される生活リズムやサポート体制を踏まえ、`
-        : '家庭の状況や子どもの月齢に合わせて、';
+    roleDefinition: ({ domain, focusLabel }) => {
       return [
-        `あなたは${domain}に関する悩みを共に考える育児コンシェルジュです。`,
-        `${lifestyleSentence}保護者の不安を和らげながら、${focusLabel}に寄り添って日常で実践しやすいアドバイスを提案してください。`,
-        '専門家の見解や信頼できる情報源も紹介してください。',
+        `あなたは${domain}に関する悩みを丁寧に受け止める育児コンシェルジュです。`,
+        '常に穏やかで優しい語りかけを心がけ、まず相談者の気持ちを言葉にして安心感を届けてください。',
+        `${focusLabel}に沿って、無理のない選択肢をステップごとに示し、必要に応じて専門家や支援窓口の活用も促してください。`,
+        '相談者自身の頑張りを認め、心のケアにも寄り添ったアドバイスを行ってください。',
       ].join('\n');
     },
     defaultTasks: (context) =>
       createDefaultTasks(context, [
         `・${context.domain}に関する状況整理（子どもの年齢や家庭環境など）`,
-        '・保護者の気持ちに寄り添った声かけやコミュニケーションの提案',
-        `・{industry}で利用できる行政・民間の支援制度や相談先の紹介`,
-        '・生活リズムやケアのコツ、安全面での注意事項',
-        '・信頼できる育児情報源や追加で確認したいポイントの提案',
+        '・保護者の気持ちに寄り添い安心につながる声かけや考え方の提案',
+        '・日常に取り入れやすいケアや生活リズムの工夫、安全面での注意事項',
+        '・必要に応じて利用できる行政・民間の支援制度や専門家・相談窓口の紹介',
+        '・心身を休めるセルフケアや周囲に頼るヒント、信頼できる情報源の提示',
       ]),
   },
 };
