@@ -117,20 +117,20 @@ const CHILDCARE_REVIEW_GUIDELINES = [
 ];
 
 function getOutputConditions(domainCategory: string): string[] {
-  if (domainCategory === '育児') {
+  if (domainCategory === '育児相談がしたい') {
     return CHILDCARE_OUTPUT_CONDITIONS;
   }
-  if (domainCategory === '翻訳と文書校閲') {
+  if (domainCategory === '翻訳や文章校閲がしたい') {
     return TRANSLATION_OUTPUT_CONDITIONS;
   }
   return DEFAULT_OUTPUT_CONDITIONS;
 }
 
 function getReviewGuidelines(domainCategory: string): string[] {
-  if (domainCategory === '育児') {
+  if (domainCategory === '育児相談がしたい') {
     return CHILDCARE_REVIEW_GUIDELINES;
   }
-  if (domainCategory === '翻訳と文書校閲') {
+  if (domainCategory === '翻訳や文章校閲がしたい') {
     return TRANSLATION_REVIEW_GUIDELINES;
   }
   return DEFAULT_REVIEW_GUIDELINES;
@@ -157,7 +157,7 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       '- 追加で確認すべき観点や参考情報の提案',
     ],
   },
-  '翻訳と文書校閲': {
+  '翻訳や文章校閲がしたい': {
     focusPlaceholder:
       '例: 英文メールの丁寧な言い回し、日本語資料の読みやすさ、語調を整えるコツ など',
     roleDefinition: ({ industryDisplay, hasIndustry }) => {
@@ -172,14 +172,16 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
         '入力された原文メッセージの校閲だけでなく、伝えたい内容やトーンの希望に基づいたゼロベース作成も可能です。日本語・英語両対応を基本とし、重要性・顧客層・業務背景の観点も加味して提案します。',
       ].join('\n');
     },
-    defaultTasks: (context) =>
-      createDefaultTasks(context, [
-        `・${context.domain}で伝えたい目的・受信者像の整理`,
-        '・原文の課題や改善ポイントの指摘',
-        `・{industry}で違和感のない語彙・敬語・トーンの提案（想定シーン未指定の場合は汎用的な案を提示）`,
-        '・用途や重要度に応じた複数案・ゼロベース草稿の提案',
-        '・推敲や再利用の際に確認すべきチェックリストやTipsの提示',
-      ]),
+    defaultTasks: () => [
+      'AIは以下を行います：',
+      '1. 入力されたメッセージの校閲',
+      '2. 改善案および目的・受信者別のバリエーション提案 (例：カジュアル/フォーマル/上長用など)',
+      '3. 伝えたい内容・背景からの新規文面ドラフト生成',
+      '4. 英語でのネイティブチェックおよびプロフェッショナル翻訳と、そのバリエーション提案',
+      '5. 報告/依頼/連絡/質問など用途や業務シチュエーション翻訳と、そのバリエーション提案',
+      '6. 情報セキュリティ・法令遵守観点のチェック',
+      '7. 記録 (Chatログなど)に準拠したやり取りフォーマットへの再整形',
+    ],
   },
   '花や虫の名前が知りたい': {
     focusPlaceholder:
@@ -225,12 +227,12 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
         '・盛り付け方や保存方法、アレルギー時の代替食材の提案',
       ]),
   },
-  育児: {
+  '育児相談がしたい': {
     focusPlaceholder:
       '例: 夜泣き対策、イヤイヤ期の接し方、保育園選びのポイント など',
-    roleDefinition: ({ domain, focusLabel }) => {
+    roleDefinition: ({ focusLabel }) => {
       return [
-        `あなたは${domain}に関する悩みを丁寧に受け止める育児コンシェルジュです。`,
+        'あなたは育児に関する悩みを丁寧に受け止める育児コンシェルジュです。',
         '常に穏やかで優しい語りかけを心がけ、まず相談者の気持ちを言葉にして安心感を届けてください。',
         `${focusLabel}に沿って、無理のない選択肢をステップごとに示し、必要に応じて専門家や支援窓口の活用も促してください。`,
         '相談者自身の頑張りを認め、心のケアにも寄り添ったアドバイスを行ってください。',
@@ -238,7 +240,7 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
     },
     defaultTasks: (context) =>
       createDefaultTasks(context, [
-        `・${context.domain}に関する状況整理（子どもの年齢や家庭環境など）`,
+        '・育児に関する状況整理（子どもの年齢や家庭環境など）',
         '・保護者の気持ちに寄り添い安心につながる声かけや考え方の提案',
         '・日常に取り入れやすいケアや生活リズムの工夫、安全面での注意事項',
         '・必要に応じて利用できる行政・民間の支援制度や専門家・相談窓口の紹介',
@@ -304,6 +306,12 @@ export function resolveDomainLabel(
   }
   if (trimmedCategory.startsWith('その他')) {
     return trimmedDetail || trimmedCategory || defaults.domain;
+  }
+  if (trimmedCategory === '翻訳や文章校閲がしたい') {
+    return '翻訳や文章校閲';
+  }
+  if (trimmedCategory === '育児相談がしたい') {
+    return '育児相談';
   }
   return trimmedCategory || defaults.domain;
 }
@@ -395,7 +403,7 @@ export function buildPrompt(
   const rawReviewGuidelines = getReviewGuidelines(input.domainCategory);
   const reviewGuidelines = rawReviewGuidelines
     .map((item) => {
-      if (input.domainCategory === '翻訳と文書校閲') {
+      if (input.domainCategory === '翻訳や文章校閲がしたい') {
         const industryScope = hasIndustry
           ? `${industryDisplay}業界全般`
           : '想定される業界・利用シーン全般';
