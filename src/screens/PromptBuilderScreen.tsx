@@ -22,7 +22,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PromptBuilder'>;
 
 const DOMAIN_OPTIONS = [
   'IT技術を知りたい',
-  '翻訳や文章校閲がしたい',
+  '翻訳と文書校閲',
   '花や虫の名前が知りたい',
   '美味しいレシピを知りたい',
   '育児',
@@ -56,7 +56,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const [industry, setIndustry] = React.useState('');
   const [industryOption, setIndustryOption] = React.useState('');
   const [industryOtherDetail, setIndustryOtherDetail] = React.useState('');
-  const [translationIndustryDetail, setTranslationIndustryDetail] = React.useState('');
+  const [industryFreeDetail, setIndustryFreeDetail] = React.useState('');
   const [focusTopics, setFocusTopics] = React.useState('');
   const [tasks, setTasks] = React.useState('');
   const [didEditTasks, setDidEditTasks] = React.useState(false);
@@ -68,27 +68,38 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       setDomainDetail(promptResult.input.domainDetail);
       const savedIndustry = promptResult.input.industry;
       setIndustry(savedIndustry);
-      if (savedIndustry === 'IT') {
-        setIndustryOption('IT');
-        setIndustryOtherDetail('');
-      } else if (savedIndustry.startsWith('その他')) {
-        setIndustryOption('その他');
-        const detail = savedIndustry.replace(/^その他[：:（(、\s)]*/u, '')
-          .replace(/[）)]$/u, '');
-        setIndustryOtherDetail(detail === 'その他' ? '' : detail);
-      } else if (savedIndustry.trim().length > 0) {
-        setIndustryOption('その他');
-        setIndustryOtherDetail(savedIndustry);
-      } else {
+
+      const isTranslation =
+        promptResult.input.domainCategory === '翻訳と文書校閲';
+      const isItDomain =
+        promptResult.input.domainCategory === 'IT技術を知りたい';
+      const isCustom = isCustomDomain(promptResult.input.domainCategory);
+
+      if (isTranslation || isItDomain || isCustom) {
         setIndustryOption('');
         setIndustryOtherDetail('');
-      }
-      if (promptResult.input.domainCategory === '翻訳や文章校閲がしたい') {
-        setTranslationIndustryDetail(savedIndustry);
-        setIndustryOption('');
-        setIndustryOtherDetail('');
+        const cleaned = savedIndustry
+          .replace(/^その他[：:（(]?(.*?)[）)]?$/u, '$1')
+          .trim();
+        const freeDetailValue = cleaned.length > 0 ? cleaned : savedIndustry.trim();
+        setIndustryFreeDetail(freeDetailValue);
       } else {
-        setTranslationIndustryDetail('');
+        setIndustryFreeDetail('');
+        if (savedIndustry === 'IT') {
+          setIndustryOption('IT');
+          setIndustryOtherDetail('');
+        } else if (savedIndustry.startsWith('その他')) {
+          setIndustryOption('その他');
+          const detail = savedIndustry.replace(/^その他[：:（(、\s)]*/u, '')
+            .replace(/[）)]$/u, '');
+          setIndustryOtherDetail(detail === 'その他' ? '' : detail);
+        } else if (savedIndustry.trim().length > 0) {
+          setIndustryOption('その他');
+          setIndustryOtherDetail(savedIndustry);
+        } else {
+          setIndustryOption('');
+          setIndustryOtherDetail('');
+        }
       }
 
       setFocusTopics(promptResult.input.focusTopics ?? '');
@@ -128,7 +139,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         setIndustry('生物観察のシーン');
         setIndustryOption('');
         setIndustryOtherDetail('');
-        setTranslationIndustryDetail('');
+        setIndustryFreeDetail('');
       }
 
       if (
@@ -138,7 +149,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         setIndustry('');
         setIndustryOption('');
         setIndustryOtherDetail('');
-        setTranslationIndustryDetail('');
+        setIndustryFreeDetail('');
       }
     }
   }, [promptResult]);
@@ -150,7 +161,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     setIndustry('');
     setIndustryOption('');
     setIndustryOtherDetail('');
-    setTranslationIndustryDetail('');
+    setIndustryFreeDetail('');
     if (!isCustomDomain(option)) {
       setDomainDetail('');
     }
@@ -205,9 +216,15 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [computeItDetail, domainCategory, domainDetail, itOtherDetail, selectedItCategories]);
 
+  const isCustomDomainSelected = isCustomDomain(domainCategory);
+
   const effectiveIndustry = React.useMemo(() => {
-    if (domainCategory === '翻訳や文章校閲がしたい') {
-      return translationIndustryDetail.trim();
+    if (
+      domainCategory === '翻訳と文書校閲' ||
+      domainCategory === 'IT技術を知りたい' ||
+      isCustomDomainSelected
+    ) {
+      return industryFreeDetail.trim();
     }
     if (industryOption === 'IT') {
       return 'IT';
@@ -216,37 +233,20 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       const trimmed = industryOtherDetail.trim();
       return trimmed.length > 0 ? `その他：${trimmed}` : 'その他';
     }
-    return industry;
+    return '';
   }, [
     domainCategory,
-    industry,
+    industryFreeDetail,
     industryOption,
     industryOtherDetail,
-    translationIndustryDetail,
+    isCustomDomainSelected,
   ]);
 
   React.useEffect(() => {
-    if (
-      domainCategory === '翻訳や文章校閲がしたい' ||
-      industryOption === ''
-    ) {
-      return;
+    if (effectiveIndustry !== industry) {
+      setIndustry(effectiveIndustry);
     }
-    const normalized = effectiveIndustry;
-    if (normalized !== industry) {
-      setIndustry(normalized);
-    }
-  }, [domainCategory, effectiveIndustry, industry, industryOption]);
-
-  React.useEffect(() => {
-    if (domainCategory !== '翻訳や文章校閲がしたい') {
-      return;
-    }
-    const normalized = translationIndustryDetail.trim();
-    if (normalized !== industry) {
-      setIndustry(normalized);
-    }
-  }, [domainCategory, industry, translationIndustryDetail]);
+  }, [effectiveIndustry, industry]);
 
   const handleTasksChange = React.useCallback((value: string) => {
     setTasks(value);
@@ -274,8 +274,6 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     didEditTasks,
   ]);
 
-  const isCustomDomainSelected = isCustomDomain(domainCategory);
-  
   const handleGenerate = React.useCallback(() => {
     if (!domainCategory) {
       Alert.alert('テーマ・領域を選択してください');
@@ -324,10 +322,44 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     '育児',
   ].includes(domainCategory);
 
-  const isTranslationDomain = domainCategory === '翻訳や文章校閲がしたい';
+  const isTranslationDomain = domainCategory === '翻訳と文書校閲';
+  const isFreeIndustryDomain =
+    isTranslationDomain ||
+    domainCategory === 'IT技術を知りたい' ||
+    isCustomDomainSelected;
 
   const shouldShowIndustrySection =
-    !shouldHideIndustry && (isTranslationDomain || domainCategory.length > 0);
+    !shouldHideIndustry && domainCategory.length > 0;
+
+  const industryPlaceholder = React.useMemo(() => {
+    if (isTranslationDomain) {
+      return '例: 観光業のパンフレット、IT企業の採用サイト、医療業界向け資料 など';
+    }
+    if (domainCategory === 'IT技術を知りたい') {
+      return '例: 金融業のシステム部門、スタートアップのプロダクト開発、公共機関の情報システム など';
+    }
+    if (isCustomDomainSelected) {
+      return '例: 対象となる業界やシーンを自由に入力してください';
+    }
+    return '想定している業界や利用シーンがあれば入力してください';
+  }, [
+    domainCategory,
+    isCustomDomainSelected,
+    isTranslationDomain,
+  ]);
+
+  const industryHelperText = React.useMemo(() => {
+    if (isTranslationDomain) {
+      return 'どの業界・場面で使われる文章かを自由に記述してください。読み手の立場や雰囲気が分かると翻訳の精度が高まります。';
+    }
+    if (domainCategory === 'IT技術を知りたい') {
+      return '自由記述です。担当部門や利用するチーム、求められる品質レベルなどが分かると具体的な助言がしやすくなります。';
+    }
+    if (isCustomDomainSelected) {
+      return '自由記述です。想定する業界や利用場面が分かると、出力内容をより適切にカスタマイズできます。';
+    }
+    return '該当する業界や利用シーンがあれば自由に記述してください。';
+  }, [domainCategory, isCustomDomainSelected, isTranslationDomain]);
 
   return (
     <ScrollView
@@ -446,18 +478,16 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       {shouldShowIndustrySection ? (
         <View style={styles.formGroup}>
           <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
-          {isTranslationDomain ? (
+          {isFreeIndustryDomain ? (
             <>
               <TextInput
                 style={[styles.input, styles.multiline]}
-                placeholder="例: 観光業のパンフレット、IT企業の採用サイト、医療業界向け資料 など"
-                value={translationIndustryDetail}
-                onChangeText={setTranslationIndustryDetail}
+                placeholder={industryPlaceholder}
+                value={industryFreeDetail}
+                onChangeText={setIndustryFreeDetail}
                 multiline
               />
-              <Text style={styles.helperText}>
-                どの業界・場面で使われる文章かを自由に記述してください。読み手の立場や雰囲気が分かると翻訳の精度が高まります。
-              </Text>
+              <Text style={styles.helperText}>{industryHelperText}</Text>
             </>
           ) : (
             <>

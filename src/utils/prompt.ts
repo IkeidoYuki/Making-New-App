@@ -62,16 +62,6 @@ function createDefaultTasks(
   ];
 }
 
-const IT_OUTPUT_CONDITIONS = [
-  '回答は日本語で出力してください。',
-  '構成は「概要 → 詳細 → 関連Tips」を基本フォーマットとしてください。',
-  '利用シーンや業界の特性（セキュリティ、可用性、法令順守など）が関係する場合は必ず言及してください。',
-  '質問に応じて「ベストプラクティス」「注意点」「構成サンプル」「追加提案」などを1～3点で簡潔にまとめてください。',
-  '漏れなく、簡潔かつ体系的に説明してください。必要に応じて段階的（ステップバイステップ）に解説してください。',
-  '不明点やカスタマイズの希望があれば、追って相談できる旨を案内してください。',
-  'レビュー指針に従い、自己レビューを2回行ってから回答してください。',
-];
-
 const DEFAULT_OUTPUT_CONDITIONS = [
   '日本語で入力してください。',
   '回答は体系的に（概要→詳細→関連Tips）を基本フォーマットとしてください。',
@@ -81,6 +71,18 @@ const DEFAULT_OUTPUT_CONDITIONS = [
   '必要に応じて段階的（ステップバイステップ）に解説を行ってください。',
   'ご不明点やカスタマイズ希望は、追加でご相談ください。',
   'レビュー指針に従って、2回レビューしてから回答してください。',
+];
+
+const TRANSLATION_OUTPUT_CONDITIONS = [
+  '回答は日本語で出力してください。',
+  '校閲では原文の意図・敬語・専門用語の適合性を確認し、必要に応じて背景説明も添えてください。',
+  '構成は「概要 → 詳細 → 関連Tips」を基本フォーマットとしてください。',
+  '用途や受信者に応じたトーンや言語表現の違いがあれば明示してください。',
+  '校閲結果では、下記順で出力',
+  'a) 原文へのフィードバック',
+  'b) 修正案または提案文（複数パターン・用途別）',
+  '不明点や追加で確認すべき点があれば質問を添えてください。',
+  'レビュー指針に従い、自己レビューを2回行ってから回答してください。',
 ];
 
 const CHILDCARE_OUTPUT_CONDITIONS = [
@@ -93,18 +95,18 @@ const CHILDCARE_OUTPUT_CONDITIONS = [
   'レビュー指針に従い、自己レビューを2回行ってから回答してください。',
 ];
 
-const IT_REVIEW_GUIDELINES = [
-  '依頼内容を網羅的に解決しているか。',
-  'ユーザーが迷わない構成・ヒアリングになっているか。',
-  '論理の飛躍や抜け漏れ、不明瞭な点がないか。',
-  '回答内容に矛盾がないか。',
-];
-
 const DEFAULT_REVIEW_GUIDELINES = [
   '依頼された内容を網羅的に解決するものとなっているか',
   'ユーザーが迷わない構成・ヒアリングになっているか確認してください。',
   '論理飛躍やヌケモレ、不明瞭な点がないか全面的に見直してください。',
   '回答内容に矛盾がないか確認してください。',
+];
+
+const TRANSLATION_REVIEW_GUIDELINES = [
+  '汎用性：{industryScope}および他業種でも応用可能なヒアリング・出力設計となっているか',
+  'ヌケモレ：受信者・目的・文調・セキュリティ・法令・言語・テンプレ等全て網羅しているか',
+  '利用者の文書レベル・状況変動にも柔軟対応可能な設計',
+  '必要に応じ、用途別カスタマイズ例やTipsも入れられる構造',
 ];
 
 const CHILDCARE_REVIEW_GUIDELINES = [
@@ -118,8 +120,8 @@ function getOutputConditions(domainCategory: string): string[] {
   if (domainCategory === '育児') {
     return CHILDCARE_OUTPUT_CONDITIONS;
   }
-  if (domainCategory === 'IT技術を知りたい') {
-    return IT_OUTPUT_CONDITIONS;
+  if (domainCategory === '翻訳と文書校閲') {
+    return TRANSLATION_OUTPUT_CONDITIONS;
   }
   return DEFAULT_OUTPUT_CONDITIONS;
 }
@@ -128,8 +130,8 @@ function getReviewGuidelines(domainCategory: string): string[] {
   if (domainCategory === '育児') {
     return CHILDCARE_REVIEW_GUIDELINES;
   }
-  if (domainCategory === 'IT技術を知りたい') {
-    return IT_REVIEW_GUIDELINES;
+  if (domainCategory === '翻訳と文書校閲') {
+    return TRANSLATION_REVIEW_GUIDELINES;
   }
   return DEFAULT_REVIEW_GUIDELINES;
 }
@@ -155,26 +157,28 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       '- 追加で確認すべき観点や参考情報の提案',
     ],
   },
-  '翻訳や文章校閲がしたい': {
+  '翻訳と文書校閲': {
     focusPlaceholder:
       '例: 英文メールの丁寧な言い回し、日本語資料の読みやすさ、語調を整えるコツ など',
-    roleDefinition: ({ domain, industryDisplay, hasIndustry }) => {
-      const toneSentence = hasIndustry
-        ? `${industryDisplay}で好まれるトーンや専門用語に注意しつつ、`
-        : '伝えたい印象や読み手のレベルに合わせて、';
+    roleDefinition: ({ industryDisplay, hasIndustry }) => {
+      const industryLabel = hasIndustry
+        ? industryDisplay.match(/業(界|種)$/u)
+          ? industryDisplay
+          : `${industryDisplay}業界`
+        : '多様な業界シーン';
       return [
-        'あなたは文章の翻訳と校閲を行うエディターです。',
-        `${toneSentence}原文の意図を正確に保ちながら、自然で読みやすい表現に仕上げてください。`,
-        '改善理由や複数案の比較、細かなニュアンスの違いにも触れてください。',
+        `あなたは「${industryLabel}におけるメッセージ校閲・提案スペシャリストAI」です。`,
+        '本AIは、プロフェッショナルな視点からユーザーから連携された文章の校閲・改善・適切なコミュニケーション提案まで行います。関係者に信用され信頼を損なうことなく、かつ明確・簡潔・正確で適法かつセキュアな表現になるように伴走します。',
+        '入力された原文メッセージの校閲だけでなく、伝えたい内容やトーンの希望に基づいたゼロベース作成も可能です。日本語・英語両対応を基本とし、重要性・顧客層・業務背景の観点も加味して提案します。',
       ].join('\n');
     },
     defaultTasks: (context) =>
       createDefaultTasks(context, [
-        `・${context.domain}で伝えたい目的・相手像の整理`,
+        `・${context.domain}で伝えたい目的・受信者像の整理`,
         '・原文の課題や改善ポイントの指摘',
-        `・{industry}で違和感のない語彙・敬語・トーンの提案`,
-        '・複数候補や直し方の解説（可能であれば）',
-        '・推敲するときに確認すべきチェックリストの提示',
+        `・{industry}で違和感のない語彙・敬語・トーンの提案（想定シーン未指定の場合は汎用的な案を提示）`,
+        '・用途や重要度に応じた複数案・ゼロベース草稿の提案',
+        '・推敲や再利用の際に確認すべきチェックリストやTipsの提示',
       ]),
   },
   '花や虫の名前が知りたい': {
@@ -388,8 +392,17 @@ export function buildPrompt(
     .map((item) => `- ${item}`)
     .join('\n');
 
-  const reviewGuidelines = getReviewGuidelines(input.domainCategory)
-    .map((item) => `- ${item}`)
+  const rawReviewGuidelines = getReviewGuidelines(input.domainCategory);
+  const reviewGuidelines = rawReviewGuidelines
+    .map((item) => {
+      if (input.domainCategory === '翻訳と文書校閲') {
+        const industryScope = hasIndustry
+          ? `${industryDisplay}業界全般`
+          : '想定される業界・利用シーン全般';
+        return `- ${item.replace('{industryScope}', industryScope)}`;
+      }
+      return `- ${item}`;
+    })
     .join('\n');
 
   const question = questionDraft.trim();
