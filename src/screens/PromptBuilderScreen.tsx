@@ -459,7 +459,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : null}
 
-      {domainCategory ? (
+      {domainCategory && !isTranslationDomain ? (
         <View style={styles.formGroup}>
           <Text style={styles.sectionLabel}>特に知りたい内容（任意）</Text>
           <TextInput
@@ -572,20 +572,6 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       <Pressable style={[styles.primaryButton, styles.marginTopSmall]} onPress={handleGenerate}>
         <Text style={styles.primaryButtonText}>ロールプロンプトを生成する</Text>
       </Pressable>
-
-      {promptResult && (
-        <View style={[styles.previewCard, styles.marginTopLarge]}>
-          <Text style={styles.previewTitle}>生成済みのロールプロンプト</Text>
-          <Text style={styles.previewSummary}>{promptResult.summary}</Text>
-          <Text style={styles.previewBody}>{promptResult.rolePrompt}</Text>
-          <Pressable
-            style={[styles.secondaryButton, styles.marginTopSmall]}
-            onPress={() => navigation.navigate('Main')}
-          >
-            <Text style={styles.secondaryButtonText}>メイン画面で確認する</Text>
-          </Pressable>
-        </View>
-      )}
     </ScrollView>
   );
 };
@@ -607,9 +593,6 @@ const styles = StyleSheet.create({
   },
   marginTopSmall: {
     marginTop: 16,
-  },
-  marginTopLarge: {
-    marginTop: 24,
   },
   formGroup: {
     marginTop: 20,
@@ -698,43 +681,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
     fontSize: 16,
-  },
-  previewCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  previewTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  previewSummary: {
-    fontSize: 13,
-    color: '#475569',
-    marginTop: 8,
-  },
-  previewBody: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#334155',
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  secondaryButton: {
-    backgroundColor: '#2563eb11',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#1d4ed8',
-    fontWeight: '600',
-    fontSize: 14,
   },
 });
 

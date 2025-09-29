@@ -81,6 +81,12 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
         >
           <Text style={styles.secondaryButtonText}>使い方ヘルプ</Text>
         </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate('Favorites')}
+        >
+          <Text style={styles.secondaryButtonText}>お気に入り</Text>
+        </Pressable>
       </View>
 
       {promptResult ? (
@@ -110,7 +116,7 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       <View style={[styles.questionSection, styles.sectionSpacingLarge]}>
-        <Text style={styles.sectionTitle}>ChatGPTに送信する質問内容</Text>
+        <Text style={styles.sectionTitle}>ChatGPTに送信する質問内容（任意）</Text>
         <TextInput
           style={[styles.input, styles.sectionSpacingSmall]}
           placeholder="最終的にChatGPTへ入力したい質問を記載してください"
