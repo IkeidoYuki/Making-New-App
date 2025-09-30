@@ -24,6 +24,12 @@
 - **expo-clipboard / Linking API**
   - クリップボード連携やChatGPTサイトの起動に利用しています。
 
+## Expo設定のポイント
+- `app.json` で iOS/Android のアプリ識別子をそれぞれ `com.github.ikeidoyuki.airoleprompt` に統一しています。初回ビルドやストア申請時はこの値を変更しないでください。
+- iOS の `buildNumber` と Android の `versionCode` は 1 から始まり、バージョンアップ時は後述のスクリプトで管理します。
+- 輸出コンプライアンス申請を簡略化するため、`ITSAppUsesNonExemptEncryption` を `false` に設定しています。
+- Web ビルドは現状不要なため、Expo Web の設定は最小構成 (`bundler: "metro"`) のままです。
+
 ## セットアップ
 1. Node.jsとnpm、またはyarnをインストールしてください。
 2. 依存関係をインストールします。初回セットアップ時にプレースホルダーアセットが自動生成されます。
@@ -89,6 +95,14 @@ npx expo start --clear --localhost
 - `npm start` / `npx expo start`：開発用のMetroバンドラーを起動します。
 - `npm run start:fresh`：キャッシュを削除してからExpoを起動します（`.expo`, `metro-cache`, `node_modules/.cache` をクリーンアップ）。
 - `npm run prepare-assets`：Expo設定で参照するPNGアセット（アイコン/スプラッシュ）を生成します。`postinstall`で自動実行されます。
+- `npm run bump:ios` / `npm run bump:android` / `npm run bump:both`：`app.json` の iOS `buildNumber` と Android `versionCode` を自動インクリメントします。`-- --to <number>` を付けると任意値に更新できます。
+- `npm run bump:version:patch|minor|major`：Expo のマーケティングバージョン（`expo.version`）をセマンティックバージョニングで更新し、iOS の `buildNumber` を `1` にリセットします。
+
+## バージョンとビルド番号の運用手順
+1. 機能追加や修正でストアリリースする際は、まずマーケティングバージョンが必要か確認し、必要なら `npm run bump:version:patch`（または `minor` / `major`）を実行します。
+2. 追加のビルドを提出する場合は `npm run bump:ios` や `npm run bump:android` で該当するビルド番号のみを更新してください。
+3. コマンド実行後は `git diff` で `app.json` の変更を確認し、問題がなければコミットします。
+4. Expo / EAS Build 実行時は `app.json` の識別子がストア設定と一致していることを再度確認してください。
 
 ## ディレクトリ構成
 ```
@@ -100,6 +114,8 @@ npx expo start --clear --localhost
 ├── package.json            # 依存関係とスクリプト
 ├── scripts/
 │   ├── prepare-assets.js   # プレースホルダーアセット生成スクリプト
+│   ├── bump-build.js       # iOS/Android のビルド番号を更新
+│   ├── bump-version.js     # Expoのマーケティングバージョンを更新
 │   └── reset-dev-server.js # Metro/Expoキャッシュ削除スクリプト
 ├── src/
 │   ├── context/

@@ -10,7 +10,13 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "prepare-assets": "node scripts/prepare-assets.js",
-    "postinstall": "npm run prepare-assets"
+    "postinstall": "npm run prepare-assets",
+    "bump:ios": "node scripts/bump-build.js ios",
+    "bump:android": "node scripts/bump-build.js android",
+    "bump:both": "node scripts/bump-build.js both",
+    "bump:version:patch": "node scripts/bump-version.js patch",
+    "bump:version:minor": "node scripts/bump-version.js minor",
+    "bump:version:major": "node scripts/bump-version.js major"
   },
   "dependencies": {
     "@react-navigation/native": "^6.1.9",
