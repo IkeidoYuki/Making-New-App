@@ -15,7 +15,7 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.github.ikeidoyuki.airoleprompt",
       "buildNumber": "1",
       "infoPlist": {
