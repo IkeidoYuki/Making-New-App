@@ -6,6 +6,8 @@ export interface AppStateContextValue {
   questionDraft: string;
   setPromptResult: (result: PromptResult | null) => void;
   updateQuestionDraft: (value: string) => void;
+  hasNewPrompt: boolean;
+  acknowledgePrompt: () => void;
   history: PromptHistoryEntry[];
   favorites: FavoriteEntry[];
   addFavorite: (name: string, result: PromptResult) => void;
@@ -43,10 +45,12 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
   const [questionDraft, setQuestionDraft] = React.useState('');
   const [history, setHistory] = React.useState<PromptHistoryEntry[]>([]);
   const [favorites, setFavorites] = React.useState<FavoriteEntry[]>([]);
+  const [hasNewPrompt, setHasNewPrompt] = React.useState(false);
 
   const storePromptResult = React.useCallback(
     (result: PromptResult | null) => {
       setPromptResultState(result);
+      setHasNewPrompt(!!result);
       if (result) {
         setHistory((prev) => {
           const nextEntry: PromptHistoryEntry = {
@@ -70,8 +74,13 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       if (!prev) {
         return prev;
       }
+      setHasNewPrompt(false);
       return buildPrompt(prev.input, value);
     });
+  }, []);
+
+  const acknowledgePrompt = React.useCallback(() => {
+    setHasNewPrompt(false);
   }, []);
 
   const addFavorite = React.useCallback((name: string, result: PromptResult) => {
@@ -114,6 +123,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       questionDraft,
       setPromptResult: storePromptResult,
       updateQuestionDraft,
+      hasNewPrompt,
+      acknowledgePrompt,
       history,
       favorites,
       addFavorite,
@@ -125,6 +136,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       questionDraft,
       storePromptResult,
       updateQuestionDraft,
+      hasNewPrompt,
+      acknowledgePrompt,
       history,
       favorites,
       addFavorite,

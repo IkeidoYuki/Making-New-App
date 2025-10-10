@@ -3,4 +3,5 @@ export type RootStackParamList = {
   PromptBuilder: undefined;
   Help: undefined;
   Favorites: undefined;
+  History: undefined;
 };
