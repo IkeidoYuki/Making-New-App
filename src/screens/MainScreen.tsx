@@ -1,23 +1,16 @@
 import React from 'react';
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../context/AppStateContext';
+import { launchChatGPTWithPrompt } from '../utils/chat';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Main'>;
 
 const MainScreen: React.FC<Props> = ({ navigation }) => {
-  const { promptResult, questionDraft, updateQuestionDraft } = useAppState();
+  const { promptResult, questionDraft, hasNewPrompt, acknowledgePrompt } =
+    useAppState();
 
   const openPromptBuilder = React.useCallback(() => {
     navigation.navigate('PromptBuilder');
@@ -28,16 +21,6 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert(
         'ロールプロンプトを作成してください',
         '「ヒアリングシート」に進んで質問内容を整理しましょう。',
-      );
-      return;
-    }
-
-    const url = 'https://chat.openai.com/';
-    const supported = await Linking.canOpenURL(url);
-    if (!supported) {
-      Alert.alert(
-        'ChatGPTを開けません',
-        'ブラウザで https://chat.openai.com/ にアクセスしてください。',
       );
       return;
     }
@@ -55,10 +38,33 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
         'クリップボードにコピーできませんでした',
         'お手数ですが手動でコピーして貼り付けてください。',
       );
+      return;
     }
 
-    await Linking.openURL(url);
-  }, [promptResult, questionDraft]);
+    const launched = await launchChatGPTWithPrompt(clipboardPayload);
+    if (launched) {
+      acknowledgePrompt();
+    }
+  }, [acknowledgePrompt, promptResult, questionDraft]);
+
+  const handleCopyLatestPrompt = React.useCallback(async () => {
+    if (!promptResult) {
+      return;
+    }
+    try {
+      await Clipboard.setStringAsync(promptResult.rolePrompt);
+      Alert.alert('コピーしました', 'ロールプロンプトをクリップボードにコピーしました。');
+    } catch (error) {
+      Alert.alert(
+        'クリップボードにコピーできませんでした',
+        'お手数ですが手動でコピーして貼り付けてください。',
+      );
+    }
+  }, [promptResult]);
+
+  const dismissBanner = React.useCallback(() => {
+    acknowledgePrompt();
+  }, [acknowledgePrompt]);
 
   return (
     <ScrollView
@@ -66,6 +72,27 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>AIプロンプト生成サポート</Text>
+      {hasNewPrompt && promptResult ? (
+        <View style={[styles.successBanner, styles.sectionSpacing]}>
+          <View style={styles.bannerHeader}>
+            <View style={styles.bannerTextGroup}>
+              <Text style={styles.bannerTitle}>ロールプロンプトを作成しました</Text>
+              <Text style={styles.bannerSubtitle}>
+                コピーしてChatGPTに貼り付けてください
+              </Text>
+            </View>
+            <Pressable style={styles.bannerCopyButton} onPress={handleCopyLatestPrompt}>
+              <Text style={styles.bannerCopyText}>コピー</Text>
+            </Pressable>
+          </View>
+          <Pressable style={styles.bannerOpenButton} onPress={openChatGPT}>
+            <Text style={styles.bannerOpenText}>ChatGPTで開く</Text>
+          </Pressable>
+          <Pressable style={styles.bannerCloseButton} onPress={dismissBanner}>
+            <Text style={styles.bannerCloseText}>閉じる</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Text style={[styles.description, styles.sectionSpacing]}>
         用途に合わせてロールプロンプトを自動生成します。ヒアリングシートに入力して、すぐに使える指示文を作成しましょう。
       </Text>
@@ -79,6 +106,12 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.navigate('Help')}
         >
           <Text style={styles.secondaryButtonText}>使い方ヘルプ</Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate('History')}
+        >
+          <Text style={styles.secondaryButtonText}>履歴</Text>
         </Pressable>
         <Pressable
           style={styles.secondaryButton}
@@ -105,25 +138,12 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       )}
 
-      <View style={[styles.questionSection, styles.sectionSpacingLarge]}>
-        <Text style={styles.sectionTitle}>ChatGPTに送信する質問内容（任意）</Text>
-        <TextInput
-          style={[styles.input, styles.sectionSpacingSmall]}
-          placeholder="最終的にChatGPTへ入力したい質問を記載してください"
-          multiline
-          value={questionDraft}
-          onChangeText={updateQuestionDraft}
-        />
-        <Text style={styles.helperText}>
-          ボタンを押すとロールプロンプトと質問文が自動でコピーされます。質問欄に入力した内容は、ロールプロンプト内の依頼事項にも反映されます。
-        </Text>
-        <Pressable
-          style={[styles.primaryButton, styles.sectionSpacingSmall]}
-          onPress={openChatGPT}
-        >
-          <Text style={styles.primaryButtonText}>ChatGPTを開く</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        style={[styles.primaryButton, styles.sectionSpacingLarge]}
+        onPress={openChatGPT}
+      >
+        <Text style={styles.primaryButtonText}>ChatGPTを開く</Text>
+      </Pressable>
     </ScrollView>
   );
 };
@@ -149,10 +169,66 @@ const styles = StyleSheet.create({
   sectionSpacingLarge: {
     marginTop: 24,
   },
-  sectionSpacingSmall: {
-    marginTop: 12,
-  },
   buttonGroup: {},
+  successBanner: {
+    backgroundColor: '#ecfdf5',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#34d399',
+  },
+  bannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  bannerTextGroup: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#047857',
+  },
+  bannerSubtitle: {
+    fontSize: 13,
+    color: '#0f766e',
+    marginTop: 4,
+  },
+  bannerCopyButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#059669',
+  },
+  bannerCopyText: {
+    color: '#ecfdf5',
+    fontWeight: '600',
+  },
+  bannerOpenButton: {
+    marginTop: 16,
+    backgroundColor: '#0f766e',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  bannerOpenText: {
+    color: '#f0fdfa',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  bannerCloseButton: {
+    marginTop: 12,
+    alignSelf: 'flex-end',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  bannerCloseText: {
+    color: '#0f766e',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   primaryButton: {
     backgroundColor: '#2563eb',
     paddingVertical: 14,
@@ -223,29 +299,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#475569',
     lineHeight: 20,
-  },
-  questionSection: {},
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#cbd5f5',
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: '#ffffff',
-    minHeight: 120,
-    textAlignVertical: 'top',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#0f172a',
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#64748b',
-    lineHeight: 18,
   },
 });
 

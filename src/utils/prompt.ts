@@ -435,7 +435,7 @@ export function buildPrompt(
     `\n\n## 主な実施タスク・業務内容\n${tasks}` +
     `${focusBlock}` +
     '\n---' +
-    `\n\n## AIに知っておいてほしい情報\n${additionalInfoSection}` +
+    `\n\n## AIへの補足情報\n${additionalInfoSection}` +
     '\n---' +
     `\n\n# 出力条件\n${outputConditions}` +
     '\n---' +

@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useAppState } from '../context/AppStateContext';
+import { launchChatGPTWithPrompt } from '../utils/chat';
 
 const formatTimestamp = (value: number) => {
   const date = new Date(value);
@@ -22,17 +22,7 @@ const formatTimestamp = (value: number) => {
 };
 
 const FavoritesScreen: React.FC = () => {
-  const {
-    favorites,
-    history,
-    addFavorite,
-    updateFavoritePrompt,
-    removeFavorite,
-  } = useAppState();
-  const [selectedHistoryId, setSelectedHistoryId] = React.useState<string | null>(
-    null,
-  );
-  const [favoriteName, setFavoriteName] = React.useState('');
+  const { favorites, updateFavoritePrompt, removeFavorite } = useAppState();
   const [optionsFavoriteId, setOptionsFavoriteId] = React.useState<string | null>(
     null,
   );
@@ -40,38 +30,6 @@ const FavoritesScreen: React.FC = () => {
     null,
   );
   const [editedPrompt, setEditedPrompt] = React.useState('');
-
-  const handleSelectHistory = React.useCallback(
-    (entryId: string, defaultName: string) => {
-      if (selectedHistoryId === entryId) {
-        setSelectedHistoryId(null);
-        setFavoriteName('');
-      } else {
-        setSelectedHistoryId(entryId);
-        setFavoriteName(defaultName);
-      }
-    },
-    [selectedHistoryId],
-  );
-
-  const handleAddFavorite = React.useCallback(() => {
-    if (!selectedHistoryId) {
-      return;
-    }
-    const entry = history.find((item) => item.id === selectedHistoryId);
-    if (!entry) {
-      return;
-    }
-    const trimmed = favoriteName.trim();
-    if (!trimmed) {
-      Alert.alert('お気に入り名を入力してください');
-      return;
-    }
-    addFavorite(trimmed, entry.result);
-    setSelectedHistoryId(null);
-    setFavoriteName('');
-    Alert.alert('お気に入りに登録しました');
-  }, [addFavorite, favoriteName, history, selectedHistoryId]);
 
   const closeOptions = React.useCallback(() => {
     setOptionsFavoriteId(null);
@@ -105,19 +63,10 @@ const FavoritesScreen: React.FC = () => {
       );
       return;
     }
-
-    const url = 'https://chat.openai.com/';
-    const supported = await Linking.canOpenURL(url);
-    if (!supported) {
-      Alert.alert(
-        'ChatGPTを開けません',
-        'ブラウザで https://chat.openai.com/ にアクセスしてください。',
-      );
-      return;
+    const launched = await launchChatGPTWithPrompt(prompt);
+    if (launched) {
+      closeOptions();
     }
-
-    await Linking.openURL(url);
-    closeOptions();
   }, [activeFavorite, closeOptions]);
 
   const handleShowTemplate = React.useCallback(() => {
@@ -174,7 +123,7 @@ const FavoritesScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>登録済みのお気に入り</Text>
           {favorites.length === 0 ? (
             <Text style={styles.placeholder}>
-              まだお気に入りが登録されていません。ヒアリングシートで生成したロールプロンプトを履歴から選んで登録できます。
+              まだお気に入りが登録されていません。ヒアリングシートで生成したロールプロンプトを履歴から登録できます。
             </Text>
           ) : (
             favorites.map((favorite) => (
@@ -194,54 +143,10 @@ const FavoritesScreen: React.FC = () => {
         </View>
 
         <View style={[styles.section, styles.sectionSpacing]}>
-          <Text style={styles.sectionTitle}>過去5回分の生成履歴</Text>
-          <Text style={styles.historyListDescription}>
-            お気に入りに登録したい履歴を選び、名前を入力して「お気に入りに登録する」を押してください。
+          <Text style={styles.sectionTitle}>お気に入りの使い方</Text>
+          <Text style={styles.helperText}>
+            ヒアリングシートで作成したロールプロンプトは、ホーム画面の「履歴」からお気に入り登録できます。
           </Text>
-          {history.length === 0 ? (
-            <Text style={styles.placeholder}>
-              まだロールプロンプトの生成履歴がありません。ヒアリングシートからロールプロンプトを作成すると表示されます。
-            </Text>
-          ) : (
-            history.map((entry) => {
-              const isSelected = entry.id === selectedHistoryId;
-              return (
-                <View
-                  key={entry.id}
-                  style={[
-                    styles.historyCard,
-                    isSelected && styles.historyCardSelected,
-                  ]}
-                >
-                  <Pressable
-                    onPress={() => handleSelectHistory(entry.id, entry.result.summary)}
-                  >
-                    <Text style={styles.historySummary}>{entry.result.summary}</Text>
-                    <Text style={styles.historyTimestamp}>
-                      生成日時: {formatTimestamp(entry.createdAt)}
-                    </Text>
-                  </Pressable>
-                  {isSelected ? (
-                    <View style={styles.favoriteForm}>
-                      <Text style={styles.inputLabel}>お気に入り名</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={favoriteName}
-                        onChangeText={setFavoriteName}
-                        placeholder="登録したい名前を入力してください"
-                      />
-                      <Pressable
-                        style={styles.addButton}
-                        onPress={handleAddFavorite}
-                      >
-                        <Text style={styles.addButtonText}>お気に入りに登録する</Text>
-                      </Pressable>
-                    </View>
-                  ) : null}
-                </View>
-              );
-            })
-          )}
         </View>
       </ScrollView>
 
@@ -381,67 +286,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94a3b8',
   },
-  historyListDescription: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#64748b',
-    lineHeight: 18,
-  },
-  historyCard: {
+  helperText: {
     marginTop: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#cbd5f5',
-  },
-  historyCardSelected: {
-    borderColor: '#2563eb',
-    backgroundColor: '#eff6ff',
-  },
-  historySummary: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  historyTimestamp: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#94a3b8',
-  },
-  favoriteForm: {
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#bfdbfe',
-    paddingTop: 16,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 20,
     color: '#475569',
-  },
-  input: {
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#cbd5f5',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#ffffff',
-    fontSize: 14,
-    color: '#0f172a',
-  },
-  addButton: {
-    marginTop: 16,
-    backgroundColor: '#2563eb',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,

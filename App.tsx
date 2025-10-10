@@ -10,6 +10,7 @@ import { AppStateProvider } from './src/context/AppStateContext';
 import { RootStackParamList } from './src/navigation/types';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import HistoryScreen from './src/screens/HistoryScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -46,6 +47,11 @@ export default function App() {
               name="Favorites"
               component={FavoritesScreen}
               options={{ title: 'お気に入り' }}
+            />
+            <Stack.Screen
+              name="History"
+              component={HistoryScreen}
+              options={{ title: '履歴' }}
             />
           </Stack.Navigator>
         </NavigationContainer>

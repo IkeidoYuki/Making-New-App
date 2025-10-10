@@ -29,6 +29,8 @@ const DOMAIN_OPTIONS = [
   'その他（自由記述）',
 ];
 
+const PLACEHOLDER_COLOR = '#334155';
+
 const IT_CATEGORY_OPTIONS = [
   'クラウド',
   'コンテナ',
@@ -40,6 +42,18 @@ const IT_CATEGORY_OPTIONS = [
   'SaaS',
   'モバイル/端末',
   'ネットワーク',
+  'その他（自由記述）',
+];
+
+const CHILDCARE_TOPIC_OPTIONS = [
+  '授乳',
+  '食事',
+  '睡眠',
+  '体調',
+  '服装',
+  '発達',
+  '遊び/おもちゃ',
+  '予防接種/受診目安',
 ];
 
 const INDUSTRY_OPTIONS = ['IT', 'その他'];
@@ -61,6 +75,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const [tasks, setTasks] = React.useState('');
   const [didEditTasks, setDidEditTasks] = React.useState(false);
   const [additionalInfo, setAdditionalInfo] = React.useState('');
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(true);
+  const [selectedChildcareTopics, setSelectedChildcareTopics] =
+    React.useState<string[]>([]);
+
+  const toggleAdvanced = React.useCallback(() => {
+    setIsAdvancedOpen((prev) => !prev);
+  }, []);
 
   React.useEffect(() => {
     if (promptResult) {
@@ -102,7 +123,8 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      setFocusTopics(promptResult.input.focusTopics ?? '');
+      const focusValue = promptResult.input.focusTopics ?? '';
+      setFocusTopics(focusValue);
       const savedTasks = promptResult.input.tasks ?? '';
       setTasks(savedTasks);
       setDidEditTasks(savedTasks.trim().length > 0);
@@ -114,11 +136,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
           const tokens = detail.split(/[、,]/).map((item) => item.trim());
           const selected: string[] = [];
           let otherText = '';
+          let shouldSelectOther = false;
           tokens.forEach((token) => {
             if (!token) {
               return;
             }
             if (token.startsWith('その他')) {
+              shouldSelectOther = true;
               otherText = token
                 .replace(/^その他[：:（(]/, '')
                 .replace(/[）)]$/u, '')
@@ -127,12 +151,28 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
             }
             selected.push(token);
           });
+          if (shouldSelectOther) {
+            selected.push('その他（自由記述）');
+          }
           setSelectedItCategories(selected);
           setItOtherDetail(otherText);
+        } else {
+          setSelectedItCategories([]);
+          setItOtherDetail('');
         }
       } else {
         setSelectedItCategories([]);
         setItOtherDetail('');
+      }
+
+      if (promptResult.input.domainCategory === '育児相談がしたい') {
+        const tokens = focusValue
+          .split(/\n|、|,|，/)
+          .map((item) => item.trim())
+          .filter((item) => CHILDCARE_TOPIC_OPTIONS.includes(item));
+        setSelectedChildcareTopics(tokens);
+      } else {
+        setSelectedChildcareTopics([]);
       }
 
       if (promptResult.input.domainCategory === '花や虫の名前が知りたい') {
@@ -162,6 +202,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     setIndustryOption('');
     setIndustryOtherDetail('');
     setIndustryFreeDetail('');
+    setSelectedChildcareTopics([]);
     if (!isCustomDomain(option)) {
       setDomainDetail('');
     }
@@ -176,10 +217,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const computeItDetail = React.useCallback(
     (categories: string[], other: string) => {
-      const items = [...categories];
+      const items = categories.filter((item) => item !== 'その他（自由記述）');
+      const otherSelected = categories.includes('その他（自由記述）');
       const otherTrimmed = other.trim();
-      if (otherTrimmed.length > 0) {
-        items.push(`その他：${otherTrimmed}`);
+      if (otherSelected) {
+        items.push(
+          otherTrimmed.length > 0 ? `その他：${otherTrimmed}` : 'その他',
+        );
       }
       return items.join('、');
     },
@@ -200,11 +244,21 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         const next = exists
           ? prev.filter((item) => item !== category)
           : [...prev, category];
+        if (!next.includes('その他（自由記述）')) {
+          setItOtherDetail('');
+        }
         return next;
       });
     },
     [],
   );
+
+  const handleToggleChildcareTopic = React.useCallback((topic: string) => {
+    setSelectedChildcareTopics((prev) => {
+      const exists = prev.includes(topic);
+      return exists ? prev.filter((item) => item !== topic) : [...prev, topic];
+    });
+  }, []);
 
   React.useEffect(() => {
     if (domainCategory !== 'IT技術を知りたい') {
@@ -274,6 +328,16 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     didEditTasks,
   ]);
 
+  React.useEffect(() => {
+    if (domainCategory !== '育児相談がしたい') {
+      return;
+    }
+    const joined = selectedChildcareTopics.join('\n');
+    if (joined !== focusTopics) {
+      setFocusTopics(joined);
+    }
+  }, [domainCategory, focusTopics, selectedChildcareTopics]);
+
   const handleGenerate = React.useCallback(() => {
     if (!domainCategory) {
       Alert.alert('テーマ・領域を選択してください');
@@ -323,6 +387,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   ].includes(domainCategory);
 
   const isTranslationDomain = domainCategory === '翻訳や文章校閲がしたい';
+  const isChildcareDomain = domainCategory === '育児相談がしたい';
   const isFreeIndustryDomain =
     isTranslationDomain ||
     domainCategory === 'IT技術を知りたい' ||
@@ -330,6 +395,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   const shouldShowIndustrySection =
     !shouldHideIndustry && domainCategory.length > 0;
+
+  const shouldShowFocusInput =
+    domainCategory.length > 0 && !isTranslationDomain && !isChildcareDomain;
+  const shouldRenderFocusInAccordion =
+    domainCategory === '花や虫の名前が知りたい' ||
+    domainCategory === '美味しいレシピを知りたい';
+  const isIndustryInAccordion = domainCategory === 'IT技術を知りたい';
 
   const industryPlaceholder = React.useMemo(() => {
     if (isTranslationDomain) {
@@ -360,6 +432,120 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     }
     return '該当する業界や利用シーンがあれば自由に記述してください。';
   }, [domainCategory, isCustomDomainSelected, isTranslationDomain]);
+
+  const renderFocusInputSection = (withinAccordion: boolean) => (
+    <View
+      style={withinAccordion ? styles.accordionSection : styles.formGroup}
+    >
+      <Text style={styles.sectionLabel}>特に知りたい内容（任意）</Text>
+      <TextInput
+        style={[styles.input, styles.multiline]}
+        placeholder={focusPlaceholder}
+        placeholderTextColor={PLACEHOLDER_COLOR}
+        value={focusTopics}
+        onChangeText={setFocusTopics}
+        multiline
+      />
+      <Text style={styles.helperText}>
+        複数ある場合は改行またはカンマで区切って入力してください。
+      </Text>
+    </View>
+  );
+
+  const renderIndustrySection = (withinAccordion: boolean) => {
+    if (!shouldShowIndustrySection) {
+      return null;
+    }
+    return (
+      <View
+        style={withinAccordion ? styles.accordionSection : styles.formGroup}
+      >
+        <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
+        {isFreeIndustryDomain ? (
+          <>
+            <TextInput
+              style={[styles.input, styles.multiline]}
+              placeholder={industryPlaceholder}
+              placeholderTextColor={PLACEHOLDER_COLOR}
+              value={industryFreeDetail}
+              onChangeText={setIndustryFreeDetail}
+              multiline
+            />
+            <Text style={styles.helperText}>{industryHelperText}</Text>
+          </>
+        ) : (
+          <>
+            <View style={styles.optionList}>
+              {INDUSTRY_OPTIONS.map((option) => {
+                const isSelected = industryOption === option;
+                return (
+                  <Pressable
+                    key={option}
+                    style={[
+                      styles.optionChip,
+                      styles.industryChip,
+                      isSelected && styles.optionChipSelected,
+                    ]}
+                    onPress={() => {
+                      if (isSelected) {
+                        setIndustryOption('');
+                        setIndustry('');
+                        setIndustryOtherDetail('');
+                      } else {
+                        setIndustryOption(option);
+                        if (option === 'IT') {
+                          setIndustry('IT');
+                          setIndustryOtherDetail('');
+                        } else {
+                          setIndustry('その他');
+                        }
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        isSelected && styles.optionChipTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {industryOption === 'その他' ? (
+              <TextInput
+                style={[styles.input, styles.multiline, styles.marginTopSmall]}
+                placeholder="詳細があれば入力してください"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                value={industryOtherDetail}
+                onChangeText={setIndustryOtherDetail}
+                multiline
+              />
+            ) : null}
+          </>
+        )}
+      </View>
+    );
+  };
+
+  const renderTasksSection = () => (
+    <View style={styles.accordionSection}>
+      <Text style={styles.sectionLabel}>主な実施タスク</Text>
+      <TextInput
+        style={[styles.input, styles.multiline]}
+        placeholder="この領域でAIに実施してほしいタスクを入力してください"
+        placeholderTextColor={PLACEHOLDER_COLOR}
+        value={tasks}
+        onChangeText={handleTasksChange}
+        multiline
+      />
+      <Text style={styles.helperText}>
+        選択したテーマに合わせて自動入力されています。必要に応じて追記・編集してください。
+      </Text>
+    </View>
+  );
 
   return (
     <ScrollView
@@ -405,6 +591,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={[styles.input, styles.multiline]}
             placeholder="どのようなテーマを扱いたいか具体的に入力してください"
+            placeholderTextColor={PLACEHOLDER_COLOR}
             value={domainDetail}
             onChangeText={setDomainDetail}
             multiline
@@ -444,125 +631,86 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
             })}
           </View>
           <Text style={[styles.helperText, styles.marginTopSmall]}>
-            興味のある分野は複数選択できます。詳しく指定したい内容があれば「その他（自由記述）」に記入してください。
+            興味のある分野は複数選択できます。詳しく指定したい内容があれば「その他（自由記述）」を選択して記入してください。
           </Text>
-          <View style={styles.marginTopSmall}>
-            <Text style={styles.stackGroupTitle}>その他（自由記述）</Text>
-            <TextInput
-              style={[styles.input, styles.multiline]}
-              placeholder="特定のサービス名や環境など、追加で指定したい内容があれば入力してください"
-              value={itOtherDetail}
-              onChangeText={setItOtherDetail}
-              multiline
-            />
-          </View>
-        </View>
-      ) : null}
-
-      {domainCategory && !isTranslationDomain ? (
-        <View style={styles.formGroup}>
-          <Text style={styles.sectionLabel}>特に知りたい内容（任意）</Text>
-          <TextInput
-            style={[styles.input, styles.multiline]}
-            placeholder={focusPlaceholder}
-            value={focusTopics}
-            onChangeText={setFocusTopics}
-            multiline
-          />
-          <Text style={styles.helperText}>
-            複数ある場合は改行またはカンマで区切って入力してください。
-          </Text>
-        </View>
-      ) : null}
-
-      {shouldShowIndustrySection ? (
-        <View style={styles.formGroup}>
-          <Text style={styles.sectionLabel}>想定している業界（任意）</Text>
-          {isFreeIndustryDomain ? (
-            <>
+          {selectedItCategories.includes('その他（自由記述）') ? (
+            <View style={styles.marginTopSmall}>
+              <Text style={styles.stackGroupTitle}>その他（自由記述）</Text>
               <TextInput
                 style={[styles.input, styles.multiline]}
-                placeholder={industryPlaceholder}
-                value={industryFreeDetail}
-                onChangeText={setIndustryFreeDetail}
+                placeholder="特定のサービス名や環境など、追加で指定したい内容があれば入力してください"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                value={itOtherDetail}
+                onChangeText={setItOtherDetail}
                 multiline
               />
-              <Text style={styles.helperText}>{industryHelperText}</Text>
-            </>
-          ) : (
-            <>
-              <View style={styles.optionList}>
-                {INDUSTRY_OPTIONS.map((option) => {
-                  const isSelected = industryOption === option;
-                  return (
-                    <Pressable
-                      key={option}
-                      style={[
-                        styles.optionChip,
-                        styles.industryChip,
-                        isSelected && styles.optionChipSelected,
-                      ]}
-                      onPress={() => {
-                        if (isSelected) {
-                          setIndustryOption('');
-                          setIndustry('');
-                          setIndustryOtherDetail('');
-                        } else {
-                          setIndustryOption(option);
-                          if (option === 'IT') {
-                            setIndustry('IT');
-                            setIndustryOtherDetail('');
-                          } else {
-                            setIndustry('その他');
-                          }
-                        }
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.optionChipText,
-                          isSelected && styles.optionChipTextSelected,
-                        ]}
-                      >
-                        {option}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {industryOption === 'その他' ? (
-                <TextInput
-                  style={[styles.input, styles.multiline, styles.marginTopSmall]}
-                  placeholder="詳細があれば入力してください"
-                  value={industryOtherDetail}
-                  onChangeText={setIndustryOtherDetail}
-                  multiline
-                />
-              ) : null}
-            </>
-          )}
+            </View>
+          ) : null}
         </View>
       ) : null}
 
-      <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>主な実施タスク</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="この領域でAIに実施してほしいタスクを入力してください"
-          value={tasks}
-          onChangeText={handleTasksChange}
-          multiline
-        />
-        <Text style={styles.helperText}>
-          選択したテーマに合わせて自動入力されています。必要に応じて追記・編集してください。
-        </Text>
+      {isChildcareDomain ? (
+        <View style={styles.formGroup}>
+          <Text style={styles.sectionLabel}>特に知りたい内容</Text>
+          <View style={styles.optionList}>
+            {CHILDCARE_TOPIC_OPTIONS.map((topic) => {
+              const isSelected = selectedChildcareTopics.includes(topic);
+              return (
+                <Pressable
+                  key={topic}
+                  style={[
+                    styles.optionChip,
+                    styles.childcareChip,
+                    isSelected && styles.optionChipSelected,
+                  ]}
+                  onPress={() => handleToggleChildcareTopic(topic)}
+                >
+                  <Text
+                    style={[
+                      styles.optionChipText,
+                      isSelected && styles.optionChipTextSelected,
+                    ]}
+                  >
+                    {topic}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.helperText}>
+            気になる項目を選択してください。複数選択できます。
+          </Text>
+        </View>
+      ) : null}
+
+      {shouldShowFocusInput && !shouldRenderFocusInAccordion
+        ? renderFocusInputSection(false)
+        : null}
+
+      {!isIndustryInAccordion ? renderIndustrySection(false) : null}
+
+      <View style={[styles.formGroup, styles.accordionContainer]}>
+        <Pressable style={styles.accordionHeader} onPress={toggleAdvanced}>
+          <Text style={styles.accordionTitle}>詳細設定（任意）</Text>
+          <Text style={styles.accordionIcon}>{isAdvancedOpen ? '−' : '+'}</Text>
+        </Pressable>
+        {isAdvancedOpen ? (
+          <View style={styles.accordionBody}>
+            {shouldShowFocusInput && shouldRenderFocusInAccordion
+              ? renderFocusInputSection(true)
+              : null}
+            {renderTasksSection()}
+            {isIndustryInAccordion ? renderIndustrySection(true) : null}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>AIに知っておいてほしい情報（任意・URLも可）</Text>
+        <Text style={styles.sectionLabel}>AIへの補足情報（任意・URLも可）</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="共有したい補足情報や参考URLがあれば入力してください"
+          placeholder="参考URLや補足情報があれば入力してください。URLは複数貼ってOK。個人情報は書かないでください。"
+          placeholderTextColor={PLACEHOLDER_COLOR}
           value={additionalInfo}
           onChangeText={setAdditionalInfo}
           multiline
@@ -611,9 +759,9 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#475569',
     marginTop: 8,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   input: {
     borderWidth: 1,
@@ -670,6 +818,42 @@ const styles = StyleSheet.create({
   },
   industryChip: {
     flexBasis: '45%',
+  },
+  childcareChip: {
+    flexBasis: '45%',
+  },
+  accordionContainer: {
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    overflow: 'hidden',
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#eff6ff',
+  },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1d4ed8',
+  },
+  accordionIcon: {
+    fontSize: 18,
+    color: '#1d4ed8',
+    fontWeight: '700',
+  },
+  accordionBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 20,
+  },
+  accordionSection: {
+    marginTop: 0,
   },
   primaryButton: {
     backgroundColor: '#2563eb',
