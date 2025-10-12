@@ -4,6 +4,7 @@ export interface PromptBuilderInput {
   industry: string;
   focusTopics: string;
   tasks: string;
+  requiredSkills: string;
   additionalInfo: string;
 }
 
@@ -30,6 +31,7 @@ interface DomainTemplate {
   focusPlaceholder: string;
   roleDefinition: (context: TemplateContext) => string;
   defaultTasks: (context: TemplateContext) => string[];
+  defaultSkills: (context: TemplateContext) => string[];
 }
 
 function sanitiseMultiline(input: string): string[] {
@@ -62,6 +64,19 @@ function createDefaultTasks(
         .replace(/^[\-・•]\s*/u, '')
         .replace(/^[0-9]+[\.)]\s*/u, '');
       return `- ${withoutBullets}`;
+    }),
+  ];
+}
+
+function createDefaultSkills(lines: string[]): string[] {
+  return [
+    'AIに求められる主なスキル：',
+    ...lines.map((line) => {
+      const trimmed = line
+        .replace(/^[\-・•]\s*/u, '')
+        .replace(/^[0-9]+[\.)]\s*/u, '')
+        .trim();
+      return `- ${trimmed}`;
     }),
   ];
 }
@@ -99,6 +114,16 @@ const CHILDCARE_OUTPUT_CONDITIONS = [
   'レビュー指針に従い、自己レビューを2回行ってから回答してください。',
 ];
 
+const IMAGE_EDITING_OUTPUT_CONDITIONS = [
+  'ユーザーからの要望に応じて、下記を実施してください。',
+  'a) 提供された画像の修正・加工',
+  'b) 提供された画像のイラスト化',
+  'c) ゼロベースでの画像作成',
+  '日本語で丁寧かつ網羅的に補足してください。',
+  '入力内容に不足・曖昧な項目がある場合、ヒアリング用プロンプトにて確認を行ってください。',
+  'レビュー指針に基づいて2回レビューした最終成果物を提示してください。',
+];
+
 const DEFAULT_REVIEW_GUIDELINES = [
   '依頼された内容を網羅的に解決するものとなっているか',
   'ユーザーが迷わない構成・ヒアリングになっているか確認してください。',
@@ -120,12 +145,20 @@ const CHILDCARE_REVIEW_GUIDELINES = [
   '最後にねぎらいのメッセージが含まれているか。',
 ];
 
+const IMAGE_EDITING_REVIEW_GUIDELINES = [
+  '作成・修正された画像・イラストが物理的に成り立っているか。',
+  'イラストに指の数や時計の時間などの矛盾点がないか。',
+];
+
 function getOutputConditions(domainCategory: string): string[] {
   if (domainCategory === '育児相談がしたい') {
     return CHILDCARE_OUTPUT_CONDITIONS;
   }
   if (domainCategory === '翻訳や文章校閲がしたい') {
     return TRANSLATION_OUTPUT_CONDITIONS;
+  }
+  if (domainCategory === '画像の修正・作成がしたい') {
+    return IMAGE_EDITING_OUTPUT_CONDITIONS;
   }
   return DEFAULT_OUTPUT_CONDITIONS;
 }
@@ -136,6 +169,9 @@ function getReviewGuidelines(domainCategory: string): string[] {
   }
   if (domainCategory === '翻訳や文章校閲がしたい') {
     return TRANSLATION_REVIEW_GUIDELINES;
+  }
+  if (domainCategory === '画像の修正・作成がしたい') {
+    return IMAGE_EDITING_REVIEW_GUIDELINES;
   }
   return DEFAULT_REVIEW_GUIDELINES;
 }
@@ -159,6 +195,12 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       '- リスクと対応策、必要な準備事項の助言',
       '- 追加で確認すべき観点や参考情報の提案',
     ],
+    defaultSkills: () =>
+      createDefaultSkills([
+        'インフラ・アプリケーション開発・運用に関する実務経験',
+        '最新のITトレンドやプロダクト事情への理解',
+        '利用者のスキルレベルに合わせて噛み砕いて解説する力',
+      ]),
   },
   '翻訳や文章校閲がしたい': {
     focusPlaceholder:
@@ -185,6 +227,13 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
       '- 情報セキュリティ・法令遵守観点のチェック',
       '- 記録 (Chatログなど)に準拠したやり取りフォーマットへの再整形',
     ],
+    defaultSkills: () =>
+      createDefaultSkills([
+        '日本語・英語双方の高度な語彙力と文法知識',
+        '業界別の専門用語・文化的背景の理解',
+        'トーンや目的に合わせて文章を設計する編集力',
+        '情報セキュリティ・法令遵守を踏まえたコミュニケーション設計力',
+      ]),
   },
   '花や虫の名前が知りたい': {
     focusPlaceholder:
@@ -206,6 +255,13 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
         `{industry}（観察場所やシーン）での生息時期・環境の解説`,
         '注意すべき安全面や扱い方のアドバイス',
         'さらに調べる際に役立つ図鑑やサイト、観察のヒントを提案',
+      ]),
+    defaultSkills: () =>
+      createDefaultSkills([
+        '植物学・昆虫学の基礎知識と観察経験',
+        '季節や生育環境ごとの特徴を説明できる知識',
+        '似ている種を比較して識別ポイントを整理する力',
+        '安全な観察方法やマナーに関する知見',
       ]),
   },
   '美味しいレシピを知りたい': {
@@ -229,6 +285,13 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
         '失敗しやすい工程とリカバリー方法、味変アイデア',
         '盛り付け方や保存方法、アレルギー時の代替食材の提案',
       ]),
+    defaultSkills: () =>
+      createDefaultSkills([
+        '家庭料理からプロの現場までのレシピ開発経験',
+        '食材の味わい・栄養・アレルギーに関する知識',
+        '調理工程を分かりやすく伝えるレシピライティング力',
+        '盛り付けや保存、提供シーンに合わせた段取りの知見',
+      ]),
   },
   '育児相談がしたい': {
     focusPlaceholder:
@@ -248,6 +311,38 @@ const DOMAIN_TEMPLATES: Record<string, DomainTemplate> = {
         '日常に取り入れやすいケアや生活リズムの工夫、安全面での注意事項',
         '必要に応じて利用できる行政・民間の支援制度や専門家・相談窓口の紹介',
         '心身を休めるセルフケアや周囲に頼るヒント、信頼できる情報源の提示',
+      ]),
+    defaultSkills: () =>
+      createDefaultSkills([
+        '乳幼児の発達段階や子育て支援制度への理解',
+        '保護者の感情に寄り添い安心を届けるコミュニケーション力',
+        '安全面と現実的な生活リズムを両立する助言力',
+        '専門家・支援窓口への適切なリファレンス経験',
+      ]),
+  },
+  '画像の修正・作成がしたい': {
+    focusPlaceholder:
+      '例: 写真のレタッチ、SNS用のバナー作成、手書きラフからのイラスト化 など',
+    roleDefinition: () => {
+      return [
+        'あなたは「写真・画像の修正・加工および様々な種類のイラストを描くことが得意なプロのイラストレーターAI」です。',
+        '本AIは、ユーザーから連携された写真・画像を要望に応じて修正・加工を行います。また、写真のイラスト化や、ゼロベースからの画像作成も可能です。',
+        '加えてクライアントからの要望に応じてプロフェッショナルな視点から提案、改善を行います。',
+      ].join('\n');
+    },
+    defaultTasks: (context) =>
+      createDefaultTasks(context, [
+        '提供された画像のユーザー要望に沿った加工・修正',
+        '提供された画像のユーザー要望に沿ったイラスト化',
+        '改善案および目的・受信者別のバリエーション提案',
+        '伝えたい内容・背景からの新規イラストドラフト生成',
+      ]),
+    defaultSkills: () =>
+      createDefaultSkills([
+        '絵画・デッサンに関する専門的な知識と表現力',
+        'デジタルイラスト制作および画像加工ツールの高度な操作スキル',
+        '写真のレタッチや構図調整に関する実務経験',
+        '目的・媒体に合わせてビジュアル提案を行うアートディレクション力',
       ]),
   },
 };
@@ -271,6 +366,12 @@ const DEFAULT_TEMPLATE: DomainTemplate = {
       `{industry}に関係する制約・ルール・関係者の整理`,
       'リスクと対応策、必要な準備事項の助言',
       '追加で確認すべき観点や参考情報の提案',
+    ]),
+  defaultSkills: () =>
+    createDefaultSkills([
+      '対象領域に関する体系的な専門知識',
+      '課題整理と仮説構築を行うコンサルティング力',
+      '関係者の合意形成やリスクマネジメントに関する知見',
     ]),
 };
 
@@ -316,6 +417,9 @@ export function resolveDomainLabel(
   if (trimmedCategory === '育児相談がしたい') {
     return '育児相談';
   }
+  if (trimmedCategory === '画像の修正・作成がしたい') {
+    return '画像の修正・作成';
+  }
   return trimmedCategory || defaults.domain;
 }
 
@@ -352,6 +456,23 @@ export function generateDefaultTasksText(
     focusLabel: '特定の重点領域は未指定',
   };
   return template.defaultTasks(context).join('\n');
+}
+
+export function generateDefaultSkillsText(
+  domainCategory: string,
+  domainDetail: string,
+  industry: string,
+): string {
+  const domain = resolveDomainLabel(domainCategory, domainDetail);
+  const { hasIndustry, display } = resolveIndustryDisplay(industry);
+  const template = getDomainTemplate(domainCategory);
+  const context: TemplateContext = {
+    domain,
+    industryDisplay: display,
+    hasIndustry,
+    focusLabel: '特定の重点領域は未指定',
+  };
+  return template.defaultSkills(context).join('\n');
 }
 
 export function buildPrompt(
@@ -397,6 +518,12 @@ export function buildPrompt(
     : template.defaultTasks(context)
   ).join('\n');
 
+  const skillItems = sanitiseMultiline(input.requiredSkills);
+  const requiredSkills = (skillItems.length > 0
+    ? skillItems
+    : template.defaultSkills(context)
+  ).join('\n');
+
   const focusSection = shouldIncludeFocusSection
     ? focusItems.length > 0
       ? focusItems.map((item) => `- ${item}`).join('\n')
@@ -437,6 +564,7 @@ export function buildPrompt(
     `${template.roleDefinition(context)}` +
     '\n---' +
     `\n\n## 主な実施タスク・業務内容\n${tasks}` +
+    `\n\n## 必須のスキルセット・知識\n${requiredSkills}` +
     `${focusBlock}` +
     '\n---' +
     `\n\n## AIへの補足情報\n${additionalInfoSection}` +
@@ -471,6 +599,9 @@ export function buildPrompt(
         ? focusItems.join('\n')
         : trimmedFocus
       : '',
+    requiredSkills: skillItems.length > 0
+      ? skillItems.join('\n')
+      : template.defaultSkills(context).join('\n'),
   };
 
   return {

@@ -17,6 +17,7 @@ import { useAppState } from '../context/AppStateContext';
 import {
   buildPrompt,
   generateDefaultTasksText,
+  generateDefaultSkillsText,
   getDomainTemplate,
   PromptBuilderInput,
 } from '../utils/prompt';
@@ -26,6 +27,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PromptBuilder'>;
 const DOMAIN_OPTIONS = [
   'IT技術を知りたい',
   '翻訳や文章校閲がしたい',
+  '画像の修正・作成がしたい',
   '花や虫の名前が知りたい',
   '美味しいレシピを知りたい',
   '育児相談がしたい',
@@ -77,6 +79,8 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const [focusTopics, setFocusTopics] = React.useState('');
   const [tasks, setTasks] = React.useState('');
   const [didEditTasks, setDidEditTasks] = React.useState(false);
+  const [requiredSkills, setRequiredSkills] = React.useState('');
+  const [didEditSkills, setDidEditSkills] = React.useState(false);
   const [additionalInfo, setAdditionalInfo] = React.useState('');
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const [selectedChildcareTopics, setSelectedChildcareTopics] =
@@ -86,6 +90,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const domainDetailRef = React.useRef<TextInput | null>(null);
   const focusInputRef = React.useRef<TextInput | null>(null);
   const tasksInputRef = React.useRef<TextInput | null>(null);
+  const skillsInputRef = React.useRef<TextInput | null>(null);
   const industryFreeInputRef = React.useRef<TextInput | null>(null);
   const industryOtherInputRef = React.useRef<TextInput | null>(null);
   const itOtherDetailRef = React.useRef<TextInput | null>(null);
@@ -168,6 +173,9 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       const savedTasks = promptResult.input.tasks ?? '';
       setTasks(savedTasks);
       setDidEditTasks(savedTasks.trim().length > 0);
+      const savedSkills = promptResult.input.requiredSkills ?? '';
+      setRequiredSkills(savedSkills);
+      setDidEditSkills(savedSkills.trim().length > 0);
       setAdditionalInfo(promptResult.input.additionalInfo);
 
       if (promptResult.input.domainCategory === 'IT技術を知りたい') {
@@ -238,6 +246,8 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     setDomainCategory(option);
     setFocusTopics('');
     setDidEditTasks(false);
+    setRequiredSkills('');
+    setDidEditSkills(false);
     setIndustry('');
     setIndustryOption('');
     setIndustryOtherDetail('');
@@ -347,6 +357,11 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     setDidEditTasks(true);
   }, []);
 
+  const handleSkillsChange = React.useCallback((value: string) => {
+    setRequiredSkills(value);
+    setDidEditSkills(true);
+  }, []);
+
   React.useEffect(() => {
     if (!domainCategory) {
       setTasks('');
@@ -366,6 +381,27 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     effectiveDomainDetail,
     effectiveIndustry,
     didEditTasks,
+  ]);
+
+  React.useEffect(() => {
+    if (!domainCategory) {
+      setRequiredSkills('');
+      setDidEditSkills(false);
+      return;
+    }
+    if (!didEditSkills) {
+      const autoSkills = generateDefaultSkillsText(
+        domainCategory,
+        effectiveDomainDetail,
+        effectiveIndustry,
+      );
+      setRequiredSkills(autoSkills);
+    }
+  }, [
+    domainCategory,
+    effectiveDomainDetail,
+    effectiveIndustry,
+    didEditSkills,
   ]);
 
   React.useEffect(() => {
@@ -395,6 +431,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       industry: effectiveIndustry,
       focusTopics,
       tasks,
+      requiredSkills,
       additionalInfo,
     };
 
@@ -408,6 +445,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     effectiveIndustry,
     focusTopics,
     tasks,
+    requiredSkills,
     additionalInfo,
     setPromptResult,
     navigation,
@@ -577,22 +615,40 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const renderTasksSection = () => (
-    <View style={styles.accordionSection}>
-      <Text style={styles.sectionLabel}>主な実施タスク</Text>
-      <TextInput
-        ref={tasksInputRef}
-        style={[styles.input, styles.multiline]}
-        placeholder="この領域でAIに実施してほしいタスクを入力してください"
-        placeholderTextColor={PLACEHOLDER_COLOR}
-        value={tasks}
-        onChangeText={handleTasksChange}
-        onFocus={() => scrollToInput(tasksInputRef)}
-        multiline
-      />
-      <Text style={styles.helperText}>
-        選択したテーマに合わせて自動入力されています。必要に応じて追記・編集してください。
-      </Text>
-    </View>
+    <>
+      <View style={styles.accordionSection}>
+        <Text style={styles.sectionLabel}>主な実施タスク</Text>
+        <TextInput
+          ref={tasksInputRef}
+          style={[styles.input, styles.multiline]}
+          placeholder="この領域でAIに実施してほしいタスクを入力してください"
+          placeholderTextColor={PLACEHOLDER_COLOR}
+          value={tasks}
+          onChangeText={handleTasksChange}
+          onFocus={() => scrollToInput(tasksInputRef)}
+          multiline
+        />
+        <Text style={styles.helperText}>
+          選択したテーマに合わせて自動入力されています。必要に応じて追記・編集してください。
+        </Text>
+      </View>
+      <View style={[styles.accordionSection, styles.marginTopSmall]}>
+        <Text style={styles.sectionLabel}>必須のスキルセット</Text>
+        <TextInput
+          ref={skillsInputRef}
+          style={[styles.input, styles.multiline]}
+          placeholder="この領域でAIに求められるスキルや知識を入力してください"
+          placeholderTextColor={PLACEHOLDER_COLOR}
+          value={requiredSkills}
+          onChangeText={handleSkillsChange}
+          onFocus={() => scrollToInput(skillsInputRef)}
+          multiline
+        />
+        <Text style={styles.helperText}>
+          選択したテーマに合わせて自動入力されています。AIに期待する専門スキルがあれば追記・編集してください。
+        </Text>
+      </View>
+    </>
   );
 
   return (
