@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -594,78 +596,38 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
-      <Text style={styles.title}>質問内容のヒアリング</Text>
-      <Text style={[styles.description, styles.marginTopSmall]}>
-        以下の項目を入力すると、AIに与えるロール指示と質問テンプレートを生成します。
-      </Text>
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+        contentInset={{ bottom: 32 }}
+        contentInsetAdjustmentBehavior="automatic"
+      >
+        <Text style={styles.title}>質問内容のヒアリング</Text>
+        <Text style={[styles.description, styles.marginTopSmall]}>
+          以下の項目を入力すると、AIに与えるロール指示と質問テンプレートを生成します。
+        </Text>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>テーマ・領域</Text>
-        <View style={styles.optionList}>
-          {DOMAIN_OPTIONS.map((option) => {
-            const isSelected = domainCategory === option;
-            return (
-              <Pressable
-                key={option}
-                style={[
-                  styles.optionChip,
-                  isSelected && styles.optionChipSelected,
-                ]}
-                onPress={() => handleSelectDomain(option)}
-              >
-                <Text
-                  style={[
-                    styles.optionChipText,
-                    isSelected && styles.optionChipTextSelected,
-                  ]}
-                >
-                  {option}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      {isCustomDomainSelected ? (
         <View style={styles.formGroup}>
-          <Text style={styles.sectionLabel}>テーマの詳細</Text>
-          <TextInput
-            ref={domainDetailRef}
-            style={[styles.input, styles.multiline]}
-            placeholder="どのようなテーマを扱いたいか具体的に入力してください"
-            placeholderTextColor={PLACEHOLDER_COLOR}
-            value={domainDetail}
-            onChangeText={setDomainDetail}
-            onFocus={() => scrollToInput(domainDetailRef)}
-            multiline
-          />
-          <Text style={styles.helperText}>
-            例: 介護現場での人材育成、地域コミュニティの活性化 など
-          </Text>
-        </View>
-      ) : null}
-
-      {domainCategory === 'IT技術を知りたい' ? (
-        <View style={styles.formGroup}>
-          <Text style={styles.sectionLabel}>興味のある分野</Text>
+          <Text style={styles.label}>テーマ・領域</Text>
           <View style={styles.optionList}>
-            {IT_CATEGORY_OPTIONS.map((category) => {
-              const isSelected = selectedItCategories.includes(category);
+            {DOMAIN_OPTIONS.map((option) => {
+              const isSelected = domainCategory === option;
               return (
                 <Pressable
-                  key={category}
+                  key={option}
                   style={[
                     styles.optionChip,
-                    styles.stackChip,
                     isSelected && styles.optionChipSelected,
                   ]}
-                  onPress={() => handleToggleItCategory(category)}
+                  onPress={() => handleSelectDomain(option)}
                 >
                   <Text
                     style={[
@@ -673,111 +635,164 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
                       isSelected && styles.optionChipTextSelected,
                     ]}
                   >
-                    {category}
+                    {option}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
-          <Text style={[styles.helperText, styles.marginTopSmall]}>
-            興味のある分野は複数選択できます。詳しく指定したい内容があれば「その他（自由記述）」を選択して記入してください。
-          </Text>
-          {selectedItCategories.includes('その他（自由記述）') ? (
-            <View style={styles.marginTopSmall}>
-              <Text style={styles.stackGroupTitle}>その他（自由記述）</Text>
-              <TextInput
-                ref={itOtherDetailRef}
-                style={[styles.input, styles.multiline]}
-                placeholder="特定のサービス名や環境など、追加で指定したい内容があれば入力してください"
-                placeholderTextColor={PLACEHOLDER_COLOR}
-                value={itOtherDetail}
-                onChangeText={setItOtherDetail}
-                onFocus={() => scrollToInput(itOtherDetailRef)}
-                multiline
-              />
+        </View>
+
+        {isCustomDomainSelected ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.sectionLabel}>テーマの詳細</Text>
+            <TextInput
+              ref={domainDetailRef}
+              style={[styles.input, styles.multiline]}
+              placeholder="どのようなテーマを扱いたいか具体的に入力してください"
+              placeholderTextColor={PLACEHOLDER_COLOR}
+              value={domainDetail}
+              onChangeText={setDomainDetail}
+              onFocus={() => scrollToInput(domainDetailRef)}
+              multiline
+            />
+            <Text style={styles.helperText}>
+              例: 介護現場での人材育成、地域コミュニティの活性化 など
+            </Text>
+          </View>
+        ) : null}
+
+        {domainCategory === 'IT技術を知りたい' ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.sectionLabel}>興味のある分野</Text>
+            <View style={styles.optionList}>
+              {IT_CATEGORY_OPTIONS.map((category) => {
+                const isSelected = selectedItCategories.includes(category);
+                return (
+                  <Pressable
+                    key={category}
+                    style={[
+                      styles.optionChip,
+                      styles.stackChip,
+                      isSelected && styles.optionChipSelected,
+                    ]}
+                    onPress={() => handleToggleItCategory(category)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        isSelected && styles.optionChipTextSelected,
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={[styles.helperText, styles.marginTopSmall]}>
+              興味のある分野は複数選択できます。詳しく指定したい内容があれば「その他（自由記述）」を選択して記入してください。
+            </Text>
+            {selectedItCategories.includes('その他（自由記述）') ? (
+              <View style={styles.marginTopSmall}>
+                <Text style={styles.stackGroupTitle}>その他（自由記述）</Text>
+                <TextInput
+                  ref={itOtherDetailRef}
+                  style={[styles.input, styles.multiline]}
+                  placeholder="特定のサービス名や環境など、追加で指定したい内容があれば入力してください"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                  value={itOtherDetail}
+                  onChangeText={setItOtherDetail}
+                  onFocus={() => scrollToInput(itOtherDetailRef)}
+                  multiline
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {isChildcareDomain ? (
+          <View style={styles.formGroup}>
+            <Text style={styles.sectionLabel}>特に知りたい内容</Text>
+            <View style={styles.optionList}>
+              {CHILDCARE_TOPIC_OPTIONS.map((topic) => {
+                const isSelected = selectedChildcareTopics.includes(topic);
+                return (
+                  <Pressable
+                    key={topic}
+                    style={[
+                      styles.optionChip,
+                      styles.childcareChip,
+                      isSelected && styles.optionChipSelected,
+                    ]}
+                    onPress={() => handleToggleChildcareTopic(topic)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        isSelected && styles.optionChipTextSelected,
+                      ]}
+                    >
+                      {topic}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.helperText}>
+              気になる項目を選択してください。複数選択できます。
+            </Text>
+          </View>
+        ) : null}
+
+        {shouldShowFocusInput && !shouldRenderFocusInAccordion
+          ? renderFocusInputSection(false)
+          : null}
+
+        {!isIndustryInAccordion ? renderIndustrySection(false) : null}
+
+        <View style={[styles.formGroup, styles.accordionContainer]}>
+          <Pressable style={styles.accordionHeader} onPress={toggleAdvanced}>
+            <Text style={styles.accordionTitle}>詳細設定（任意）</Text>
+            <Text style={styles.accordionIcon}>{isAdvancedOpen ? '−' : '+'}</Text>
+          </Pressable>
+          {isAdvancedOpen ? (
+            <View style={styles.accordionBody}>
+              {shouldShowFocusInput && shouldRenderFocusInAccordion
+                ? renderFocusInputSection(true)
+                : null}
+              {renderTasksSection()}
+              {isIndustryInAccordion ? renderIndustrySection(true) : null}
             </View>
           ) : null}
         </View>
-      ) : null}
 
-      {isChildcareDomain ? (
         <View style={styles.formGroup}>
-          <Text style={styles.sectionLabel}>特に知りたい内容</Text>
-          <View style={styles.optionList}>
-            {CHILDCARE_TOPIC_OPTIONS.map((topic) => {
-              const isSelected = selectedChildcareTopics.includes(topic);
-              return (
-                <Pressable
-                  key={topic}
-                  style={[
-                    styles.optionChip,
-                    styles.childcareChip,
-                    isSelected && styles.optionChipSelected,
-                  ]}
-                  onPress={() => handleToggleChildcareTopic(topic)}
-                >
-                  <Text
-                    style={[
-                      styles.optionChipText,
-                      isSelected && styles.optionChipTextSelected,
-                    ]}
-                  >
-                    {topic}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={styles.helperText}>
-            気になる項目を選択してください。複数選択できます。
-          </Text>
+          <Text style={styles.sectionLabel}>AIへの補足情報（任意・URLも可）</Text>
+          <TextInput
+            ref={additionalInfoRef}
+            style={[styles.input, styles.multiline]}
+            placeholder="参考URLや補足情報があれば入力してください。URLは複数貼ってOK。個人情報は書かないでください。"
+            placeholderTextColor={PLACEHOLDER_COLOR}
+            value={additionalInfo}
+            onChangeText={setAdditionalInfo}
+            onFocus={() => scrollToInput(additionalInfoRef)}
+            multiline
+          />
         </View>
-      ) : null}
 
-      {shouldShowFocusInput && !shouldRenderFocusInAccordion
-        ? renderFocusInputSection(false)
-        : null}
-
-      {!isIndustryInAccordion ? renderIndustrySection(false) : null}
-
-      <View style={[styles.formGroup, styles.accordionContainer]}>
-        <Pressable style={styles.accordionHeader} onPress={toggleAdvanced}>
-          <Text style={styles.accordionTitle}>詳細設定（任意）</Text>
-          <Text style={styles.accordionIcon}>{isAdvancedOpen ? '−' : '+'}</Text>
+        <Pressable style={[styles.primaryButton, styles.marginTopSmall]} onPress={handleGenerate}>
+          <Text style={styles.primaryButtonText}>ロールプロンプトを生成する</Text>
         </Pressable>
-        {isAdvancedOpen ? (
-          <View style={styles.accordionBody}>
-            {shouldShowFocusInput && shouldRenderFocusInAccordion
-              ? renderFocusInputSection(true)
-              : null}
-            {renderTasksSection()}
-            {isIndustryInAccordion ? renderIndustrySection(true) : null}
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.sectionLabel}>AIへの補足情報（任意・URLも可）</Text>
-        <TextInput
-          ref={additionalInfoRef}
-          style={[styles.input, styles.multiline]}
-          placeholder="参考URLや補足情報があれば入力してください。URLは複数貼ってOK。個人情報は書かないでください。"
-          placeholderTextColor={PLACEHOLDER_COLOR}
-          value={additionalInfo}
-          onChangeText={setAdditionalInfo}
-          onFocus={() => scrollToInput(additionalInfoRef)}
-          multiline
-        />
-      </View>
-
-      <Pressable style={[styles.primaryButton, styles.marginTopSmall]} onPress={handleGenerate}>
-        <Text style={styles.primaryButtonText}>ロールプロンプトを生成する</Text>
-      </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     padding: 20,
     paddingBottom: 40,
