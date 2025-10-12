@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   View,
+  findNodeHandle,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -75,9 +76,46 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
   const [tasks, setTasks] = React.useState('');
   const [didEditTasks, setDidEditTasks] = React.useState(false);
   const [additionalInfo, setAdditionalInfo] = React.useState('');
-  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(true);
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const [selectedChildcareTopics, setSelectedChildcareTopics] =
     React.useState<string[]>([]);
+
+  const scrollViewRef = React.useRef<ScrollView | null>(null);
+  const domainDetailRef = React.useRef<TextInput | null>(null);
+  const focusInputRef = React.useRef<TextInput | null>(null);
+  const tasksInputRef = React.useRef<TextInput | null>(null);
+  const industryFreeInputRef = React.useRef<TextInput | null>(null);
+  const industryOtherInputRef = React.useRef<TextInput | null>(null);
+  const itOtherDetailRef = React.useRef<TextInput | null>(null);
+  const additionalInfoRef = React.useRef<TextInput | null>(null);
+
+  const scrollToInput = React.useCallback(
+    (inputRef: React.RefObject<TextInput | null>) => {
+      const scrollView = scrollViewRef.current;
+      const input = inputRef.current as TextInput & {
+        measureLayout?: (
+          relativeToNativeNode: number,
+          onSuccess: (x: number, y: number) => void,
+          onFail: () => void,
+        ) => void;
+      };
+      if (!scrollView || !input || typeof input.measureLayout !== 'function') {
+        return;
+      }
+      const scrollViewHandle = findNodeHandle(scrollView);
+      if (!scrollViewHandle) {
+        return;
+      }
+      input.measureLayout(
+        scrollViewHandle,
+        (_x, y) => {
+          scrollView.scrollTo({ y: Math.max(y - 20, 0), animated: true });
+        },
+        () => {},
+      );
+    },
+    [],
+  );
 
   const toggleAdvanced = React.useCallback(() => {
     setIsAdvancedOpen((prev) => !prev);
@@ -439,11 +477,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     >
       <Text style={styles.sectionLabel}>特に知りたい内容（任意）</Text>
       <TextInput
+        ref={focusInputRef}
         style={[styles.input, styles.multiline]}
         placeholder={focusPlaceholder}
         placeholderTextColor={PLACEHOLDER_COLOR}
         value={focusTopics}
         onChangeText={setFocusTopics}
+        onFocus={() => scrollToInput(focusInputRef)}
         multiline
       />
       <Text style={styles.helperText}>
@@ -464,11 +504,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         {isFreeIndustryDomain ? (
           <>
             <TextInput
+              ref={industryFreeInputRef}
               style={[styles.input, styles.multiline]}
               placeholder={industryPlaceholder}
               placeholderTextColor={PLACEHOLDER_COLOR}
               value={industryFreeDetail}
               onChangeText={setIndustryFreeDetail}
+              onFocus={() => scrollToInput(industryFreeInputRef)}
               multiline
             />
             <Text style={styles.helperText}>{industryHelperText}</Text>
@@ -516,11 +558,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             {industryOption === 'その他' ? (
               <TextInput
+                ref={industryOtherInputRef}
                 style={[styles.input, styles.multiline, styles.marginTopSmall]}
                 placeholder="詳細があれば入力してください"
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 value={industryOtherDetail}
                 onChangeText={setIndustryOtherDetail}
+                onFocus={() => scrollToInput(industryOtherInputRef)}
                 multiline
               />
             ) : null}
@@ -534,11 +578,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.accordionSection}>
       <Text style={styles.sectionLabel}>主な実施タスク</Text>
       <TextInput
+        ref={tasksInputRef}
         style={[styles.input, styles.multiline]}
         placeholder="この領域でAIに実施してほしいタスクを入力してください"
         placeholderTextColor={PLACEHOLDER_COLOR}
         value={tasks}
         onChangeText={handleTasksChange}
+        onFocus={() => scrollToInput(tasksInputRef)}
         multiline
       />
       <Text style={styles.helperText}>
@@ -549,6 +595,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
@@ -589,11 +636,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.formGroup}>
           <Text style={styles.sectionLabel}>テーマの詳細</Text>
           <TextInput
+            ref={domainDetailRef}
             style={[styles.input, styles.multiline]}
             placeholder="どのようなテーマを扱いたいか具体的に入力してください"
             placeholderTextColor={PLACEHOLDER_COLOR}
             value={domainDetail}
             onChangeText={setDomainDetail}
+            onFocus={() => scrollToInput(domainDetailRef)}
             multiline
           />
           <Text style={styles.helperText}>
@@ -637,11 +686,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.marginTopSmall}>
               <Text style={styles.stackGroupTitle}>その他（自由記述）</Text>
               <TextInput
+                ref={itOtherDetailRef}
                 style={[styles.input, styles.multiline]}
                 placeholder="特定のサービス名や環境など、追加で指定したい内容があれば入力してください"
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 value={itOtherDetail}
                 onChangeText={setItOtherDetail}
+                onFocus={() => scrollToInput(itOtherDetailRef)}
                 multiline
               />
             </View>
@@ -708,11 +759,13 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.formGroup}>
         <Text style={styles.sectionLabel}>AIへの補足情報（任意・URLも可）</Text>
         <TextInput
+          ref={additionalInfoRef}
           style={[styles.input, styles.multiline]}
           placeholder="参考URLや補足情報があれば入力してください。URLは複数貼ってOK。個人情報は書かないでください。"
           placeholderTextColor={PLACEHOLDER_COLOR}
           value={additionalInfo}
           onChangeText={setAdditionalInfo}
+          onFocus={() => scrollToInput(additionalInfoRef)}
           multiline
         />
       </View>
