@@ -414,6 +414,15 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [domainCategory, focusTopics, selectedChildcareTopics]);
 
+  React.useEffect(() => {
+    if (!isImageDomain) {
+      return;
+    }
+    if (focusTopics.length > 0) {
+      setFocusTopics('');
+    }
+  }, [focusTopics, isImageDomain]);
+
   const handleGenerate = React.useCallback(() => {
     if (!domainCategory) {
       Alert.alert('テーマ・領域を選択してください');
@@ -437,7 +446,7 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
 
     const result = buildPrompt(input, questionDraft);
     setPromptResult(result);
-    navigation.navigate('Main');
+    navigation.navigate('PromptResult');
   }, [
     domainCategory,
     domainDetail,
@@ -458,14 +467,15 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     ? domainTemplate.focusPlaceholder
     : 'テーマを選択すると入力例が表示されます';
 
+  const isTranslationDomain = domainCategory === '翻訳や文章校閲がしたい';
+  const isChildcareDomain = domainCategory === '育児相談がしたい';
+  const isImageDomain = domainCategory === '画像の修正・作成がしたい';
   const shouldHideIndustry = [
     '花や虫の名前が知りたい',
     '美味しいレシピを知りたい',
     '育児相談がしたい',
+    '画像の修正・作成がしたい',
   ].includes(domainCategory);
-
-  const isTranslationDomain = domainCategory === '翻訳や文章校閲がしたい';
-  const isChildcareDomain = domainCategory === '育児相談がしたい';
   const isFreeIndustryDomain =
     isTranslationDomain ||
     domainCategory === 'IT技術を知りたい' ||
@@ -475,7 +485,10 @@ const PromptBuilderScreen: React.FC<Props> = ({ navigation }) => {
     !shouldHideIndustry && domainCategory.length > 0;
 
   const shouldShowFocusInput =
-    domainCategory.length > 0 && !isTranslationDomain && !isChildcareDomain;
+    domainCategory.length > 0 &&
+    !isTranslationDomain &&
+    !isChildcareDomain &&
+    !isImageDomain;
   const shouldRenderFocusInAccordion =
     domainCategory === '花や虫の名前が知りたい' ||
     domainCategory === '美味しいレシピを知りたい';

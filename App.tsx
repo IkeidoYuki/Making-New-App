@@ -4,6 +4,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainScreen from './src/screens/MainScreen';
 import PromptBuilderScreen from './src/screens/PromptBuilderScreen';
+import PromptResultScreen from './src/screens/PromptResultScreen';
 import HelpScreen from './src/screens/HelpScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import { AppStateProvider } from './src/context/AppStateContext';
@@ -37,6 +38,11 @@ export default function App() {
               name="PromptBuilder"
               component={PromptBuilderScreen}
               options={{ title: 'ヒアリングシート' }}
+            />
+            <Stack.Screen
+              name="PromptResult"
+              component={PromptResultScreen}
+              options={{ title: 'ロールプロンプトの確認' }}
             />
             <Stack.Screen
               name="Help"

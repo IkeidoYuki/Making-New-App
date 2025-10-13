@@ -12,6 +12,7 @@ export interface AppStateContextValue {
   favorites: FavoriteEntry[];
   addFavorite: (name: string, result: PromptResult) => void;
   updateFavoritePrompt: (id: string, rolePrompt: string) => void;
+  renameFavorite: (id: string, name: string) => void;
   removeFavorite: (id: string) => void;
 }
 
@@ -113,6 +114,16 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
     [],
   );
 
+  const renameFavorite = React.useCallback((id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return;
+    }
+    setFavorites((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, name: trimmed } : item)),
+    );
+  }, []);
+
   const removeFavorite = React.useCallback((id: string) => {
     setFavorites((prev) => prev.filter((item) => item.id !== id));
   }, []);
@@ -129,6 +140,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       favorites,
       addFavorite,
       updateFavoritePrompt,
+      renameFavorite,
       removeFavorite,
     }),
     [
@@ -142,6 +154,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       favorites,
       addFavorite,
       updateFavoritePrompt,
+      renameFavorite,
       removeFavorite,
     ],
   );
