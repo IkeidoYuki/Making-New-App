@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useAppState } from '../context/AppStateContext';
-import { launchChatGPTWithPrompt } from '../utils/chat';
+import { openInChatGPTWithChoice } from '../features/openInChatGPT';
 
 const formatTimestamp = (value: number) => {
   const date = new Date(value);
@@ -80,7 +80,10 @@ const FavoritesScreen: React.FC = () => {
       );
       return;
     }
-    const launched = await launchChatGPTWithPrompt(prompt);
+    const launched = await openInChatGPTWithChoice({
+      query: prompt,
+      title: 'ChatGPTの開き方を選択',
+    });
     if (launched) {
       closeOptions();
     }
