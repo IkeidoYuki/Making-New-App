@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useAppState } from '../context/AppStateContext';
-import { launchChatGPTWithPrompt } from '../utils/chat';
+import { openInChatGPTWithChoice } from '../features/openInChatGPT';
 
 const PLACEHOLDER_COLOR = '#334155';
 
@@ -55,7 +55,10 @@ const HistoryScreen: React.FC = () => {
       );
       return;
     }
-    await launchChatGPTWithPrompt(prompt);
+    await openInChatGPTWithChoice({
+      query: prompt,
+      title: 'ChatGPTの開き方を選択',
+    });
   }, []);
 
   const toggleExpanded = React.useCallback((entryId: string) => {

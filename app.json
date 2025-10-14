@@ -19,7 +19,8 @@
       "bundleIdentifier": "com.github.ikeidoyuki.airoleprompt",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["chatgpt", "openai", "com.openai.chat"]
       }
     },
     "android": {

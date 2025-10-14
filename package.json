@@ -22,6 +22,7 @@
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
     "expo": "~51.0.6",
+    "expo-web-browser": "~13.0.3",
     "react": "18.2.0",
     "react-native": "0.74.5",
     "expo-clipboard": "~6.0.0",
