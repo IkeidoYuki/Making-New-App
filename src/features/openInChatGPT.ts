@@ -1,6 +1,8 @@
 import { Alert, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
+// Dev Clientにネイティブが入っていない場合の保険として遅延require
+let WebBrowser: typeof import('expo-web-browser') | null = null;
+try { WebBrowser = require('expo-web-browser'); } catch {}
 import {
   buildChatGPTAppUrlCandidates,
   buildChatGPTWebUrl,
@@ -67,7 +69,12 @@ export async function openInChatGPTWithChoice({
         {
           text: 'ブラウザ（推奨）',
           onPress: async () => {
-            await WebBrowser.openBrowserAsync(webUrl);
+            if (WebBrowser?.openBrowserAsync) {
+              await WebBrowser.openBrowserAsync(webUrl);
+            } else {
+              // ネイティブ無しでも落ちないよう外部ブラウザへフォールバック
+              await Linking.openURL(webUrl);
+            }
             resolve(true);
           },
         },

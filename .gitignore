@@ -10,3 +10,4 @@ build/
 .env
 assets/*.png
 !assets/README.md
+ios/
