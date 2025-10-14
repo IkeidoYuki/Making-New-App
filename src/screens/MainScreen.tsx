@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../context/AppStateContext';
-import { launchChatGPTWithPrompt } from '../utils/chat';
+import { openInChatGPTWithChoice } from '../features/openInChatGPT';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Main'>;
 
@@ -41,7 +41,10 @@ const MainScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const launched = await launchChatGPTWithPrompt(clipboardPayload);
+    const launched = await openInChatGPTWithChoice({
+      query: clipboardPayload,
+      title: 'ChatGPTの開き方を選択',
+    });
     if (launched) {
       acknowledgePrompt();
     }
