@@ -8,6 +8,5 @@ build/
 .idea/
 .vscode/
 .env
-assets/*.png
 !assets/README.md
 ios/
