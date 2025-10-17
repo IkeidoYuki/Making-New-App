@@ -15,6 +15,7 @@
       "**/*"
     ],
     "ios": {
+      "icon": "./assets/icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.github.ikeidoyuki.airoleprompt",
       "buildNumber": "1",
