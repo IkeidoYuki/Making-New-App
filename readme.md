@@ -1,6 +1,6 @@
 # AIロールプロンプト作成アプリ
 
-このリポジトリは、質問内容に合わせてAIロールプロンプトを作成し、ChatGPTでの活用を支援するモバイルアプリ（iOS/Android）です。Expo + React Native（TypeScript）で構築しており、単一のコードベースでマルチプラットフォーム展開が可能です。
+このリポジトリは、質問内容に合わせてAIロールプロンプトを作成し、ChatGPTでの活用を支援するモバイルアプリ（iOS/Android）です。Expo（SDK 51）と React Native（TypeScript）で構築しており、単一のコードベースでマルチプラットフォーム展開が可能です。
 
 ## アプリの特長
 - **ヒアリングベースのロール生成**：用途・業界・重点トピック・タスクなどを入力すると、ドメインテンプレートに沿ったロール指示、要約、フォローアップ質問を生成します。
@@ -17,11 +17,11 @@
 - **ヘルプ**：基本的な操作方法や質問設計のTipsを掲載したチュートリアル。
 
 ## 技術スタック
-- **TypeScript** / **React Native (Expo 51)**
-  - 型安全な開発を維持しつつ、Expo経由でiOS/Androidへ迅速にデプロイできます。
+- **TypeScript** / **React Native** / **Expo SDK 51**
+  - 型安全な開発を維持しつつ、Expo Dev Client を利用した iOS / Android 双方への検証が可能です。
 - **React Navigation (Native Stack)**
   - 画面遷移やスタック管理を担います。
-- **expo-clipboard / Linking API**
+- **expo-clipboard / expo-linking / expo-web-browser**
   - クリップボード連携やChatGPTサイトの起動に利用しています。
 
 ## Expo設定のポイント
@@ -64,6 +64,27 @@ npx expo start --clear --localhost
 
 依存関係をExpo SDKに合わせて更新した上でキャッシュをクリアし再起動することで、警告が解消されます。
 
+## ネイティブ依存を追加した際の開発ビルド再作成
+
+Expo や React Native のネイティブモジュール（例：`expo-web-browser`、`expo-linking`、`react-native-screens` など）を新たに追加・更新した場合は、既存の開発ビルドでは反映されません。以下のフローで必ず Dev Client を作り直してください。
+
+1. 依存パッケージを追加する。
+   ```bash
+   npx expo install <package>
+   ```
+2. Development ビルドを再作成し、端末に再インストールする。
+   ```bash
+   eas build --profile development --platform ios --clear-cache
+   # Android も同様に --platform android を指定
+   ```
+   - 端末に古い Dev Client が残っている場合はアンインストールしてから入れ直すと確実です。
+3. キャッシュをクリアして開発サーバーを起動する。
+   ```bash
+   npx expo start -c
+   ```
+
+この手順を徹底することで「Cannot find native module 'XXX'」といったクラッシュや古い開発ビルドを誤って利用する事故を防げます。
+
 ## iOSアプリの登録・ビルド・検証
 1. Expoアカウントを作成し、[EAS CLI](https://docs.expo.dev/eas/) をインストールします。
    ```bash
@@ -94,6 +115,7 @@ npx expo start --clear --localhost
 ## 開発で利用する主なスクリプト
 - `npm start` / `npx expo start`：開発用のMetroバンドラーを起動します。
 - `npm run start:fresh`：キャッシュを削除してからExpoを起動します（`.expo`, `metro-cache`, `node_modules/.cache` をクリーンアップ）。
+- `npm run start:lan` / `npm run start:tunnel`：LAN経由またはトンネル経由でDev Serverを公開します（いずれもキャッシュクリア付き）。
 - `npm run prepare-assets`：Expo設定で参照するPNGアセット（アイコン/スプラッシュ）を生成します。`postinstall`で自動実行されます。
 - `npm run bump:ios` / `npm run bump:android` / `npm run bump:both`：`app.json` の iOS `buildNumber` と Android `versionCode` を自動インクリメントします。`-- --to <number>` を付けると任意値に更新できます。
 - `npm run bump:version:patch|minor|major`：Expo のマーケティングバージョン（`expo.version`）をセマンティックバージョニングで更新し、iOS の `buildNumber` を `1` にリセットします。
