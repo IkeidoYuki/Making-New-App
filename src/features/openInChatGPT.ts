@@ -1,5 +1,4 @@
-import { Alert, Platform } from 'react-native';
-import * as Linking from 'expo-linking';
+import { Alert, Linking, Platform } from 'react-native';
 // Dev Clientにネイティブが入っていない場合の保険として遅延require
 let WebBrowser: typeof import('expo-web-browser') | null = null;
 try { WebBrowser = require('expo-web-browser'); } catch {}
@@ -69,11 +68,24 @@ export async function openInChatGPTWithChoice({
         {
           text: 'ブラウザ（推奨）',
           onPress: async () => {
-            if (WebBrowser?.openBrowserAsync) {
-              await WebBrowser.openBrowserAsync(webUrl);
-            } else {
-              // ネイティブ無しでも落ちないよう外部ブラウザへフォールバック
+            const canInApp = !!WebBrowser?.openBrowserAsync;
+            if (__DEV__) console.log('openInChatGPT.canInApp', canInApp);
+
+            try {
+              if (canInApp) {
+                await WebBrowser!.openBrowserAsync(webUrl);
+                if (__DEV__) console.log('openInChatGPT.result', 'in_app');
+                // logOpenChatGPT({ method: 'in_app', queryLength: query.length });
+              } else {
+                // ネイティブ無しでも落ちないよう外部ブラウザへフォールバック
+                await Linking.openURL(webUrl);
+                if (__DEV__) console.log('openInChatGPT.result', 'external');
+                // logOpenChatGPT({ method: 'external', queryLength: query.length });
+              }
+            } catch (e) {
+              if (__DEV__) console.warn('openInChatGPT.error', e);
               await Linking.openURL(webUrl);
+              // logOpenChatGPT({ method: 'fallback', queryLength: query.length });
             }
             resolve(true);
           },
