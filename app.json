@@ -14,14 +14,20 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "plugins": ["sentry-expo"],
+    "plugins": [
+      "sentry-expo"
+    ],
     "ios": {
       "icon": "./assets/icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.github.ikeidoyuki.airoleprompt",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["chatgpt", "openai", "com.openai.chat"]
+        "LSApplicationQueriesSchemes": [
+          "chatgpt",
+          "openai",
+          "com.openai.chat"
+        ]
       }
     },
     "android": {
@@ -41,6 +47,12 @@
         "projectId": "48020c66-08e7-4018-a1a0-aa4e5bbdc548"
       },
       "sentryDsn": "YOUR_SENTRY_DSN"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/48020c66-08e7-4018-a1a0-aa4e5bbdc548"
     }
   }
 }
