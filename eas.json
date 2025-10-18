@@ -13,11 +13,11 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "autoIncrement": "version"
+      "autoIncrement": true
     },
     "production": {
-      "autoIncrement": "version",
       "channel": "production",
+      "autoIncrement": true,
       "android": {
         "gradleCommand": ":app:bundleRelease"
       }
