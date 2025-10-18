@@ -1,4 +1,10 @@
 import React from 'react';
+import {
+  promptStore,
+  createPersistentId,
+  type FavoriteEntry,
+  type PromptHistoryEntry,
+} from '../lib/storage/promptStore';
 import { buildPrompt, PromptResult } from '../utils/prompt';
 
 export interface AppStateContextValue {
@@ -16,22 +22,7 @@ export interface AppStateContextValue {
   removeFavorite: (id: string) => void;
 }
 
-export interface PromptHistoryEntry {
-  id: string;
-  createdAt: number;
-  result: PromptResult;
-}
-
-export interface FavoriteEntry {
-  id: string;
-  name: string;
-  addedAt: number;
-  result: PromptResult;
-}
-
 const MAX_HISTORY = 5;
-
-const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 
 const AppStateContext = React.createContext<AppStateContextValue | undefined>(
   undefined,
@@ -48,6 +39,26 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
   const [favorites, setFavorites] = React.useState<FavoriteEntry[]>([]);
   const [hasNewPrompt, setHasNewPrompt] = React.useState(false);
 
+  React.useEffect(() => {
+    (async () => {
+      const stored = await promptStore.getAll();
+      setHistory(stored.history);
+      setFavorites(stored.favorites);
+    })();
+  }, []);
+
+  const persistHistory = React.useCallback((entries: PromptHistoryEntry[]) => {
+    promptStore.setHistory(entries).catch((error) => {
+      console.error('Failed to persist history', error);
+    });
+  }, []);
+
+  const persistFavorites = React.useCallback((entries: FavoriteEntry[]) => {
+    promptStore.setFavorites(entries).catch((error) => {
+      console.error('Failed to persist favorites', error);
+    });
+  }, []);
+
   const storePromptResult = React.useCallback(
     (result: PromptResult | null) => {
       setPromptResultState(result);
@@ -55,18 +66,20 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
       if (result) {
         setHistory((prev) => {
           const nextEntry: PromptHistoryEntry = {
-            id: createId(),
+            id: createPersistentId(),
             createdAt: Date.now(),
             result,
           };
           const filtered = prev.filter(
             (item) => item.result.rolePrompt !== result.rolePrompt,
           );
-          return [nextEntry, ...filtered].slice(0, MAX_HISTORY);
+          const next = [nextEntry, ...filtered].slice(0, MAX_HISTORY);
+          persistHistory(next);
+          return next;
         });
       }
     },
-    [],
+    [persistHistory],
   );
 
   const updateQuestionDraft = React.useCallback((value: string) => {
@@ -91,27 +104,31 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
     }
     setFavorites((prev) => {
       const entry: FavoriteEntry = {
-        id: createId(),
+        id: createPersistentId(),
         name: trimmed,
         addedAt: Date.now(),
         result,
       };
       const filtered = prev.filter((item) => item.name !== trimmed);
-      return [entry, ...filtered];
+      const next = [entry, ...filtered];
+      persistFavorites(next);
+      return next;
     });
-  }, []);
+  }, [persistFavorites]);
 
   const updateFavoritePrompt = React.useCallback(
     (id: string, rolePrompt: string) => {
-      setFavorites((prev) =>
-        prev.map((item) =>
+      setFavorites((prev) => {
+        const next = prev.map((item) =>
           item.id === id
             ? { ...item, result: { ...item.result, rolePrompt } }
             : item,
-        ),
-      );
+        );
+        persistFavorites(next);
+        return next;
+      });
     },
-    [],
+    [persistFavorites],
   );
 
   const renameFavorite = React.useCallback((id: string, name: string) => {
@@ -119,14 +136,22 @@ export const AppStateProvider: React.FC<React.PropsWithChildren> = ({
     if (!trimmed) {
       return;
     }
-    setFavorites((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, name: trimmed } : item)),
-    );
-  }, []);
+    setFavorites((prev) => {
+      const next = prev.map((item) =>
+        item.id === id ? { ...item, name: trimmed } : item,
+      );
+      persistFavorites(next);
+      return next;
+    });
+  }, [persistFavorites]);
 
   const removeFavorite = React.useCallback((id: string) => {
-    setFavorites((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+    setFavorites((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      persistFavorites(next);
+      return next;
+    });
+  }, [persistFavorites]);
 
   const value = React.useMemo<AppStateContextValue>(
     () => ({
@@ -171,3 +196,5 @@ export function useAppState(): AppStateContextValue {
   }
   return context;
 }
+
+export type { PromptHistoryEntry, FavoriteEntry } from '../lib/storage/promptStore';
