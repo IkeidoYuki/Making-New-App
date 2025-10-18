@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler';
+import 'react-native-get-random-values';
 import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -10,8 +11,19 @@ import FavoritesScreen from './src/screens/FavoritesScreen';
 import { AppStateProvider } from './src/context/AppStateContext';
 import { RootStackParamList } from './src/navigation/types';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { LogBox, StyleSheet } from 'react-native';
 import HistoryScreen from './src/screens/HistoryScreen';
+import { initSentry } from './src/integrations/sentry';
+
+initSentry();
+
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    'Require cycle:',
+    'Non-serializable values were found in the navigation state',
+    'Setting a timer for a long period of time',
+  ]);
+}
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

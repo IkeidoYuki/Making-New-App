@@ -14,11 +14,11 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": ["sentry-expo"],
     "ios": {
       "icon": "./assets/icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.github.ikeidoyuki.airoleprompt",
-      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["chatgpt", "openai", "com.openai.chat"]
@@ -39,7 +39,8 @@
     "extra": {
       "eas": {
         "projectId": "48020c66-08e7-4018-a1a0-aa4e5bbdc548"
-      }
+      },
+      "sentryDsn": "YOUR_SENTRY_DSN"
     }
   }
 }
