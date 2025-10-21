@@ -6,8 +6,8 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "allowJs": false,
-    "types": ["react", "react-native"]
+    "types": ["react", "react-native", "node"]
   },
   "include": ["**/*.ts", "**/*.tsx", "App.tsx"],
-  "exclude": ["node_modules", "babel.config.js"]
+  "exclude": ["node_modules", "babel.config.js", "app.config.ts"]
 }
