@@ -1,11 +1,11 @@
-import { Alert, Linking, Platform } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { Alert, Linking, Platform, Share, ToastAndroid } from 'react-native';
 // Dev Clientにネイティブが入っていない場合の保険として遅延require
 let WebBrowser: typeof import('expo-web-browser') | null = null;
 try { WebBrowser = require('expo-web-browser'); } catch {}
 import {
   buildChatGPTAppUrlCandidates,
   buildChatGPTWebUrl,
-  STORE_URL,
 } from '../utils/chatgptLinks';
 
 type Options = { query: string; title?: string };
@@ -26,6 +26,35 @@ async function tryOpenChatGPTApp(query?: string) {
   return false;
 }
 
+const GUIDANCE_MESSAGE =
+  'ロールプロンプトをコピーしました。ChatGPTを開いたら貼り付け（ペースト）して送信してください。';
+
+async function openChatGPTAppWithClipboard(prompt: string) {
+  try {
+    await Clipboard.setStringAsync(prompt);
+  } catch (e) {
+    if (__DEV__) console.warn('openInChatGPT.clipboard', e);
+  }
+
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(GUIDANCE_MESSAGE, ToastAndroid.LONG);
+  } else {
+    Alert.alert('コピーしました', GUIDANCE_MESSAGE);
+  }
+
+  const opened = await tryOpenChatGPTApp(prompt);
+  if (opened) return true;
+
+  try {
+    await Share.share({ message: prompt });
+    return true;
+  } catch (e) {
+    if (__DEV__) console.warn('openInChatGPT.share', e);
+    Alert.alert('エラー', '共有シートを開けませんでした。もう一度お試しください。');
+    return false;
+  }
+}
+
 export async function openInChatGPTWithChoice({
   query,
   title = '開き方を選択',
@@ -42,31 +71,18 @@ export async function openInChatGPTWithChoice({
         {
           text: 'ChatGPTアプリ',
           onPress: async () => {
-            const opened = await tryOpenChatGPTApp(trimmed);
-            if (!opened) {
-              const storeUrl = Platform.OS === 'ios' ? STORE_URL.ios : STORE_URL.android;
-              Alert.alert(
-                'ChatGPTアプリが見つかりません',
-                'ストアを開きます。インストール後、再度お試しください。',
-                [
-                  { text: '閉じる', style: 'cancel', onPress: () => resolve(false) },
-                  {
-                    text: 'ストアを開く',
-                    onPress: async () => {
-                      await Linking.openURL(storeUrl);
-                      resolve(true);
-                    },
-                  },
-                ],
-                { cancelable: true },
-              );
-            } else {
-              resolve(true);
+            try {
+              const handled = await openChatGPTAppWithClipboard(trimmed);
+              resolve(handled);
+            } catch (e) {
+              if (__DEV__) console.warn('openInChatGPT.openApp', e);
+              Alert.alert('エラー', 'ChatGPTを開けませんでした。もう一度お試しください。');
+              resolve(false);
             }
           },
         },
         {
-          text: 'ブラウザ（推奨）',
+          text: 'ブラウザ',
           onPress: async () => {
             const canInApp = !!WebBrowser?.openBrowserAsync;
             if (__DEV__) console.log('openInChatGPT.canInApp', canInApp);
