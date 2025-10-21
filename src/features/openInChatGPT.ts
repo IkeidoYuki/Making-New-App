@@ -29,19 +29,7 @@ async function tryOpenChatGPTApp(query?: string) {
 const GUIDANCE_MESSAGE =
   'ロールプロンプトをコピーしました。ChatGPTを開いたら貼り付け（ペースト）して送信してください。';
 
-async function openChatGPTAppWithClipboard(prompt: string) {
-  try {
-    await Clipboard.setStringAsync(prompt);
-  } catch (e) {
-    if (__DEV__) console.warn('openInChatGPT.clipboard', e);
-  }
-
-  if (Platform.OS === 'android') {
-    ToastAndroid.show(GUIDANCE_MESSAGE, ToastAndroid.LONG);
-  } else {
-    Alert.alert('コピーしました', GUIDANCE_MESSAGE);
-  }
-
+async function openOrShare(prompt: string): Promise<boolean> {
   const opened = await tryOpenChatGPTApp(prompt);
   if (opened) return true;
 
@@ -53,6 +41,38 @@ async function openChatGPTAppWithClipboard(prompt: string) {
     Alert.alert('エラー', '共有シートを開けませんでした。もう一度お試しください。');
     return false;
   }
+}
+
+async function openChatGPTAppWithClipboard(prompt: string) {
+  try {
+    await Clipboard.setStringAsync(prompt);
+  } catch (e) {
+    if (__DEV__) console.warn('openInChatGPT.clipboard', e);
+  }
+
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(GUIDANCE_MESSAGE, ToastAndroid.LONG);
+    await new Promise(r => setTimeout(r, 300));
+    return await openOrShare(prompt);
+  }
+
+  return await new Promise<boolean>((resolve) => {
+    Alert.alert(
+      'コピーしました',
+      GUIDANCE_MESSAGE,
+      [
+        { text: 'キャンセル', style: 'cancel', onPress: () => resolve(false) },
+        {
+          text: 'ChatGPTを開く',
+          onPress: async () => {
+            const ok = await openOrShare(prompt);
+            resolve(ok);
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  });
 }
 
 export async function openInChatGPTWithChoice({
