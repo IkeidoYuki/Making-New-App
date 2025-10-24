@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'AI Role Prompt App',
+    name: 'AIロールくん',
     slug: 'ai-role-prompt-app',
     version: '1.0.0',
     orientation: 'portrait',
